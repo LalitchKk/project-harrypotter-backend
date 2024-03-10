@@ -12,6 +12,7 @@ import mysql from "mysql";
 import config from "../config";
 import { conn } from "../dbconnect";
 import { MemberPostRequest } from "../model/MemberRequest";
+import { giveCurrentDateTime, imageURL } from "./myConst";
 
 export const router = express.Router();
 
@@ -52,7 +53,7 @@ router.post("/", upload.single("image"), async (req, res) => {
   let image: string | undefined;
 
   if (!req.file || !req.file.originalname) {
-    image = "gs://store-picture.appspot.com/image/default_image.jpg";
+    imageURL;
   } else {
     const storageRef = ref(
       storage,
@@ -188,9 +189,3 @@ router.put("/:id", (req, res) => {
   });
 });
 
-const giveCurrentDateTime = () => {
-  const today = new Date();
-  const date =
-    today.getFullYear() + "-" + (today.getMonth() + 1) + "-" + today.getDate();
-  return date;
-};
