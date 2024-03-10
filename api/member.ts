@@ -74,7 +74,7 @@ router.post("/login", (req, res) => {
 
       if (bcryptResult) {
         // Passwords match, login successful
-        return res.json({ status: 0 }); // Status 0 indicates successful login
+        return res.json({ error: "Login Success",status: 0 }); // Status 0 indicates successful login
       } else {
         // Passwords do not match
         return res
