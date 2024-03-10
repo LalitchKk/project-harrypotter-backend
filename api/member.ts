@@ -1,27 +1,101 @@
 import * as bcrypt from "bcrypt";
 import express from "express";
+import { initializeApp } from "firebase/app";
+import {
+  getDownloadURL,
+  getStorage,
+  ref,
+  uploadBytesResumable,
+} from "firebase/storage";
+import multer from "multer";
 import mysql from "mysql";
+import config from "../config";
 import { conn } from "../dbconnect";
 import { MemberPostRequest } from "../model/MemberRequest";
 
 export const router = express.Router();
 
 router.get("/", (req, res) => {
-  conn.query("SELECT * FROM Members", (err, result, fields) => {
+  conn.query("SELECT mid, username, password, status, image, DATE(create_at) AS create_date FROM Members", (err, result, fields) => {
+    if (err) {
+      console.error("Error fetching data:", err);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+    // Modify the response to remove the time part from the create_date field
+    result.forEach((entry:any) => {
+      entry.create_date = entry.create_date.toISOString().split('T')[0];
+    });
+    res.json(result);
+  });
+});
+router.get("/:id", (req, res) => {
+  const memberId = req.params.id;
+  conn.query("SELECT mid, username, password, status, image, DATE(create_at) AS create_date FROM Members WHERE mid = ?", [memberId], (err, result, fields) => {
+    if (err) {
+      console.error("Error fetching data:", err);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+    result.forEach((entry: any) => {
+      entry.create_date = entry.create_date.toISOString().split('T')[0];
+    });
     res.json(result);
   });
 });
 
-router.post("/", (req, res) => {
-  const currentDate: Date = new Date();
-  const formattedDate: string = currentDate.toISOString().slice(0, 10);
-  let member: MemberPostRequest = req.body;
-  let password = member.password;
+
+initializeApp(config.firebaseConfig);
+const storage = getStorage();
+const upload = multer({ storage: multer.memoryStorage() });
+
+router.post("/", upload.single("image"), async (req, res) => {
+  const dateTime = giveCurrentDateTime();
+  let image: string | undefined;
+
+  if (!req.file || !req.file.originalname) {
+    image = "gs://store-picture.appspot.com/image/default_image.jpg";
+  } else {
+    const storageRef = ref(
+      storage,
+      `image/${req.file.originalname + "       " + dateTime}`
+    );
+    const metadata = {
+      contentType: req.file.mimetype,
+    };
+
+    try {
+      const snapshot = await uploadBytesResumable(
+        storageRef,
+        req.file.buffer,
+        metadata
+      );
+
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      image = downloadURL;
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      return res.json({ error: "Error uploading image", status: 2 });
+    }
+  }
+
+  const member: MemberPostRequest = req.body;
+  const password = member.password;
 
   conn.query(
-    "SELECT * FROM Members where username = ?",[member.username],
+    "SELECT COUNT(*) AS count FROM Members WHERE username = ?",
+    [member.username],
     (err, result, fields) => {
-      if (result != null) {
+      if (err) {
+        return res.json({ error: "Database error", status: 2 });
+      }
+
+      const count = result[0].count;
+
+      if (count > 0) {
+        return res.json({
+          error: "An account with this username already exists",
+          status: 1,
+        });
+      } else {
         bcrypt
           .hash(password, 10)
           .then((hash) => {
@@ -31,22 +105,29 @@ router.post("/", (req, res) => {
               member.username,
               hash,
               member.status,
-              member.image,
-              formattedDate,
+              image,
+              dateTime,
             ]);
 
             conn.query(sql, (err, result) => {
-              if (err) throw err;
-              return res.json({ error: "Your account has been created!", status: 0 });
+              if (err) {
+                return res.json({ error: "Error creating account", status: 2 });
+              }
+              return res.json({
+                error: "Your account has been created!",
+                status: 0,
+              });
             });
           })
-          .catch((err) => console.error("Error generating hash:", err));
-      } else {
-        return res.json({ error: "Already have account", status: 1 });
+          .catch((err) => {
+            console.error("Error generating hash:", err);
+            return res.json({ error: "Error generating hash", status: 2 });
+          });
       }
     }
   );
 });
+
 
 router.post("/login", (req, res) => {
   const { username, password } = req.body;
@@ -74,7 +155,7 @@ router.post("/login", (req, res) => {
 
       if (bcryptResult) {
         // Passwords match, login successful
-        return res.json({ error: "Login Success",status: 0 }); // Status 0 indicates successful login
+        return res.json({ error: "Login Success", status: 0 }); // Status 0 indicates successful login
       } else {
         // Passwords do not match
         return res
@@ -106,3 +187,10 @@ router.put("/:id", (req, res) => {
     });
   });
 });
+
+const giveCurrentDateTime = () => {
+  const today = new Date();
+  const date =
+    today.getFullYear() + "-" + (today.getMonth() + 1) + "-" + today.getDate();
+  return date;
+};
