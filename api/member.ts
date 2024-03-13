@@ -138,30 +138,30 @@ router.post("/login", (req, res) => {
   conn.query(sql, (err, result) => {
     if (err) {
       console.error(err);
-      return res.status(500).json({ error: "Internal server error" });
+      return res.status(500).json({ message: "Internal server error", status: 1,error:err });
     }
 
     if (result == null || result.length === 0) {
       // User not found
       return res
         .status(401)
-        .json({ error: "Username or password is incorrect", status: 1 });
+        .json({ message: "Username or password is incorrect", status: 1});
     }
     // Compare body password with the hashed password from the database
     bcrypt.compare(password, result[0].password, (bcryptErr, bcryptResult) => {
       if (bcryptErr) {
         console.error(bcryptErr);
-        return res.status(500).json({ error: "Internal server error" });
+        return res.status(500).json({ message: "Internal server error", status: 1,error:err });
       }
 
       if (bcryptResult) {
         // Passwords match, login successful
-        return res.json({ error: "Login Success", status: 0 }); // Status 0 indicates successful login
+        return res.json({ message: "Login Success", status: 0 ,member:result }); // Status 0 indicates successful login
       } else {
         // Passwords do not match
         return res
           .status(401)
-          .json({ error: "Username or password is incorrect", status: 1 });
+          .json({ message: "Username or password is incorrect", status: 1,error:err });
       }
     });
   });
