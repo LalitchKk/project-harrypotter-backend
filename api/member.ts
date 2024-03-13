@@ -175,17 +175,70 @@ router.delete("/:id", (req, res) => {
   });
 });
 
-router.put("/:id", (req, res) => {
-  let id = +req.params.id;
-  let member: MemberPostRequest = req.body;
-  bcrypt.hash(member.password, 10).then((hash) => {
-    let sql =
-      "update  `Members` set `username`=?, `password`=?, `image`=? where `mid`=?";
-    sql = mysql.format(sql, [member.username, hash, member.image, id]);
-    conn.query(sql, (err, result) => {
-      if (err) throw err;
-      res.status(201).json({ affected_row: result.affectedRows });
-    });
-  });
+router.put("/:id", upload.single("image"), async (req, res) => {
+  try {
+    const dateTime = giveCurrentDateTime();
+    var image=imageURL;
+
+    // Check if image was uploaded
+    if (req.file && req.file.originalname) {
+      const storageRef = ref(
+        storage,
+        `image/${req.file.originalname + "       " + dateTime}`
+      );
+      const metadata = { contentType: req.file.mimetype };
+
+      // Upload image to storage
+      const snapshot = await uploadBytesResumable(storageRef, req.file.buffer, metadata);
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      image = downloadURL;
+    }
+
+    const id = req.params.id;
+    const member = req.body;
+    const password = member.password;
+
+    // Check if the member exists
+    conn.query(
+      "SELECT * FROM Members WHERE mid = ?",
+      [id],
+      async (err, result, fields) => {
+        if (err) {
+          console.error("Database error:", err);
+          return res.json({ error: "Database error", status: 2 });
+        }
+
+        if (result.length === 0) {
+          return res.json({
+            error: "Member not found",
+            status: 1,
+          });
+        }
+
+        try {
+          const hash = await bcrypt.hash(password, 10);
+          let sql = "UPDATE Members SET password=?, status=?, image=?, create_at=? WHERE mid=?";
+          sql = mysql.format(sql, [hash, member.status, image, dateTime, id]);
+
+          conn.query(sql, (err, result) => {
+            if (err) {
+              console.error("Error updating account:", err);
+              return res.json({ error: "Error updating account", status: 2, err });
+            }
+            return res.json({
+              message: "Your account has been updated!",
+              status: 0,
+            });
+          });
+        } catch (error) {
+          console.error("Error generating hash:", error);
+          return res.json({ error: "Error generating hash", status: 2 });
+        }
+      }
+    );
+  } catch (error) {
+    console.error("Error:", error);
+    return res.json({ error: "Server error", status: 2 });
+  }
 });
 
