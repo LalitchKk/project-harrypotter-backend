@@ -217,8 +217,8 @@ router.put("/:id", upload.single("image"), async (req, res) => {
 
         try {
           const hash = await bcrypt.hash(password, 10);
-          let sql = "UPDATE Members SET password=?, status=?, image=?, create_at=? WHERE mid=?";
-          sql = mysql.format(sql, [hash, member.status, image, dateTime, id]);
+          let sql = "UPDATE Members SET password=?,  image=?, create_at=? WHERE mid=?";
+          sql = mysql.format(sql, [hash, image, dateTime, id]);
 
           conn.query(sql, (err, result) => {
             if (err) {
