@@ -50,7 +50,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 router.post("/", upload.single("image"), async (req, res) => {
   const dateTime = giveCurrentDateTime();
-  let image: string | undefined;
+  var image=imageURL;
 
   if (!req.file || !req.file.originalname) {
     imageURL;
@@ -112,7 +112,7 @@ router.post("/", upload.single("image"), async (req, res) => {
 
             conn.query(sql, (err, result) => {
               if (err) {
-                return res.json({ error: "Error creating account", status: 2 });
+                return res.json({ message: "Error creating account", status: 2,error:err });
               }
               return res.json({
                 error: "Your account has been created!",
