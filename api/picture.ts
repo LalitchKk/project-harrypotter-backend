@@ -90,3 +90,47 @@ router.post("/", upload.single("image"), async (req, res) => {
       }
     );
   });
+
+  router.put("/:id", upload.single("image"), async (req, res) => {
+    // Check if image is provided
+    if (!req.file || !req.file.originalname) {
+        return res.status(400).json({ error: "Image is required", status: 1 });
+    } else {
+        const storageRef = ref(
+            storage,
+            `image/${req.file.originalname + "       " }`
+        );
+        const metadata = {
+            contentType: req.file.mimetype,
+        };
+
+        try {
+            const snapshot = await uploadBytesResumable(
+                storageRef,
+                req.file.buffer,
+                metadata
+            );
+
+            const downloadURL = await getDownloadURL(snapshot.ref);
+            image = downloadURL;
+        } catch (error) {
+            console.error("Error uploading image:", error);
+            return res.status(500).json({ error: "Error uploading image", status: 1 });
+        }
+    }
+
+    var image;
+    const picture = req.body;
+    const id = req.params.id;
+    let sql =
+        "UPDATE `Picture` SET `pic`=?,`charac_name`=? WHERE `pid`=?";
+    sql = mysql.format(sql, [
+        image,
+        picture.charac_name,
+        id // Use ID from request params
+    ]);
+    conn.query(sql, (err, result) => {
+        if (err) throw err;
+        res.status(200).json({ affected_row: result.affectedRows, status: 1 });
+    });
+});

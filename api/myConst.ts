@@ -6,6 +6,6 @@ export const giveCurrentDateTime = () => {
     return date;
   };
   
-  export const imageURL = "gs://store-picture.appspot.com/image/default_image.jpg";
+  export const imageURL = "https://firebasestorage.googleapis.com/v0/b/store-picture.appspot.com/o/image%2Fdefualt_image.jpg?alt=media&token=f7623470-c451-4488-912e-ab753a826ccb";
 
   
