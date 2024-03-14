@@ -253,12 +253,11 @@ router.put("/changePassword/:id", async (req, res) => {
       [memberId],
       async (err, result, fields) => {
         if (err) {
-          console.error("Database error:", err);
-          return res.status(500).json({ message: "Database error", status: 1 });
+          return res.json({ message: "Database error", status: 1 });
         }
 
         if (result.length === 0) {
-          return res.status(404).json({
+          return res.json({
             message: "Member not found",
             status: 1,
           });
@@ -271,7 +270,7 @@ router.put("/changePassword/:id", async (req, res) => {
           const passwordMatch = await bcrypt.compare(oldPassword, hashedPasswordFromDB);
 
           if (!passwordMatch) {
-            return res.status(400).json({
+            return res.json({
               message: "Old password doesn't match",
               status: 1,
             });
@@ -287,7 +286,7 @@ router.put("/changePassword/:id", async (req, res) => {
             (err, result) => {
               if (err) {
                 console.error("Error updating account:", err);
-                return res.status(500).json({ message: "Error updating account", status: 1 });
+                return res.json({ message: "Error updating account", status: 1 });
               }
               return res.json({
                 message: "Your account password has been updated!",
@@ -297,12 +296,12 @@ router.put("/changePassword/:id", async (req, res) => {
           );
         } catch (error) {
           console.error("Error:", error);
-          return res.status(500).json({ message: "Error updating password", status: 1 });
+          return res.json({ message: "Error updating password", status: 1 });
         }
       }
     );
   } catch (error) {
     console.error("Error:", error);
-    return res.status(500).json({ message: "Server error", status: 1 });
+    return res.json({ message: "Server error", status: 1 });
   }
 });

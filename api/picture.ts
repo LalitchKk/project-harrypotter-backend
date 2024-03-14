@@ -91,6 +91,21 @@ router.post("/", upload.single("image"), async (req, res) => {
     );
   });
 
+  router.get("/:pid", (req, res) => {
+    const memberId = req.params.pid;
+    conn.query(
+      "SELECT `pid`, `pic`, `total_votes`, `charac_name`, DATE_FORMAT(`create_at`, '%Y-%m-%d') AS create_date,`mid` FROM `Picture` WHERE pid = ?",
+      memberId,
+      (err, result, fields) => {
+        if (err) {
+          console.error("Error fetching data:", err);
+          return res.status(500).json({ error: "Internal server error" });
+        }
+        res.json(result);
+      }
+    );
+  });
+
   router.put("/:id", upload.single("image"), async (req, res) => {
     // Check if image is provided
     if (!req.file || !req.file.originalname) {
