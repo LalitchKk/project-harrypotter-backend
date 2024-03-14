@@ -15,7 +15,7 @@ export const router = express.Router();
 
 router.get("/", (req, res) => {
   conn.query(
-    "SELECT `pid`, `pic`, `total_votes`, `charac_name`, DATE_FORMAT(`create_at`, '%Y-%m-%d') AS create_date,`mid` FROM `Picture`",
+    "SELECT `pid`, `pic`, `total_votes`, `charac_name`, DATE_FORMAT(`create_at`, '%Y-%m-%d') AS create_date, `mid` FROM `Picture` ORDER BY `total_votes` DESC LIMIT 10",
     (err, result, fields) => {
       if (err) {
         console.error("Error fetching data:", err);
@@ -184,4 +184,17 @@ router.delete("/:id", (req, res) => {
       res.status(404).json({ error: "Picture not found", status: 1 });
     }
   });
+});
+
+router.get("/topTen", (req, res) => {
+  conn.query(
+      "SELECT `pid`, `pic`, `total_votes`, `charac_name`, DATE_FORMAT(`create_at`, '%Y-%m-%d') AS create_date, `mid` FROM `Picture` ORDER BY `total_votes` DESC LIMIT 10",
+      (err, result, fields) => {
+          if (err) {
+              console.error("Error fetching data:", err);
+              return res.json({ error: "Internal server error" ,status:1});
+          }
+          res.json(result);
+      }
+  );
 });
