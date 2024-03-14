@@ -8,7 +8,6 @@ import {
 import multer from "multer";
 import mysql from "mysql";
 import { conn } from "../dbconnect";
-import { PicturePostRequest } from "../model/PictureRequest";
 import { giveCurrentDateTime, imageURL } from "./myConst";
 const upload = multer(); // Initialize multer without specifying destination
 const storage = getStorage();
@@ -28,52 +27,54 @@ router.get("/", (req, res) => {
 });
 
 router.post("/", upload.single("image"), async (req, res) => {
-    const dateTime = giveCurrentDateTime();
-    let image: string | undefined;
-  
-    if (!req.file || !req.file.originalname) {
-      imageURL;
-    } else {
+  const dateTime = giveCurrentDateTime();
+  let image = imageURL;
+
+  // Check if image is provided
+  if (!req.file || !req.file.originalname) {
+      return res.status(400).json({ error: "Image is required", status: 1 });
+  } else {
       const storageRef = ref(
-        storage,
-        `image/${req.file.originalname + "       " + dateTime}`
+          storage,
+          `image/${req.file.originalname + "       " + dateTime}`
       );
       const metadata = {
-        contentType: req.file.mimetype,
+          contentType: req.file.mimetype,
       };
-  
+
       try {
-        const snapshot = await uploadBytesResumable(
-          storageRef,
-          req.file.buffer,
-          metadata
-        );
-  
-        const downloadURL = await getDownloadURL(snapshot.ref);
-        image = downloadURL;
+          const snapshot = await uploadBytesResumable(
+              storageRef,
+              req.file.buffer,
+              metadata
+          );
+
+          const downloadURL = await getDownloadURL(snapshot.ref);
+          image = downloadURL;
       } catch (error) {
-        console.error("Error uploading image:", error);
-        return res.json({ error: "Error uploading image", status: 2 });
+          console.error("Error uploading image:", error);
+          return res.status(500).json({ error: "Error uploading image", status: 1 });
       }
-    }
-  
-    const picture: PicturePostRequest = req.body;
-    let sql =
+  }
+
+  const picture = req.body;
+  let sql =
       "INSERT INTO `Picture`(`pic`, `total_votes`, `charac_name`, `create_at`, `mid`)VALUES (?, ?, ?,?, ?)";
-      sql = mysql.format(sql, [
-        image,
-        "0",
-        picture.charac_name,
-        dateTime,
-        picture.mid // Provide the value for the mid column
-    ]);
-    conn.query(sql, (err, result) => {
+  sql = mysql.format(sql, [
+      image,
+      "0",
+      picture.charac_name,
+      dateTime,
+      picture.mid // Provide the value for the mid column
+  ]);
+  conn.query(sql, (err, result) => {
       if (err) throw err;
       res
-        .status(201)
-        .json({ affected_row: result.affectedRows, last_idx: result.insertId });
-    });
+          .status(201)
+          .json({ affected_row: result.affectedRows, last_idx: result.insertId ,status:1});
   });
+});
+
   
   router.get("/member/:mid", (req, res) => {
     const memberId = req.params.mid;
