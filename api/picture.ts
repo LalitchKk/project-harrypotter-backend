@@ -1,9 +1,9 @@
 import express from "express";
 import {
-    getDownloadURL,
-    getStorage,
-    ref,
-    uploadBytesResumable,
+  getDownloadURL,
+  getStorage,
+  ref,
+  uploadBytesResumable,
 } from "firebase/storage";
 import multer from "multer";
 import mysql from "mysql";
@@ -75,3 +75,17 @@ router.post("/", upload.single("image"), async (req, res) => {
     });
   });
   
+  router.get("/member/:mid", (req, res) => {
+    const memberId = req.params.mid;
+    conn.query(
+      "SELECT `pid`, `pic`, `total_votes`, `charac_name`, DATE_FORMAT(`create_at`, '%Y-%m-%d') AS create_date,`mid` FROM `Picture` WHERE mid = ?",
+      memberId,
+      (err, result, fields) => {
+        if (err) {
+          console.error("Error fetching data:", err);
+          return res.status(500).json({ error: "Internal server error" });
+        }
+        res.json(result);
+      }
+    );
+  });

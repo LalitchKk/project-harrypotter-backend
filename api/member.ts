@@ -242,3 +242,67 @@ router.put("/:id", upload.single("image"), async (req, res) => {
   }
 });
 
+router.put("/changePassword/:id", async (req, res) => {
+  try {
+    const memberId = req.params.id;
+    const { oldPassword, newPassword } = req.body; // Extracting old and new passwords from request body
+
+    // Check if the member exists
+    conn.query(
+      "SELECT * FROM Members WHERE mid = ?",
+      [memberId],
+      async (err, result, fields) => {
+        if (err) {
+          console.error("Database error:", err);
+          return res.status(500).json({ error: "Database error", status: 1 });
+        }
+
+        if (result.length === 0) {
+          return res.status(404).json({
+            error: "Member not found",
+            status: 1,
+          });
+        }
+
+        try {
+          const hashedPasswordFromDB = result[0].password;
+
+          // Compare old password from the request body with hashed password from the database
+          const passwordMatch = await bcrypt.compare(oldPassword, hashedPasswordFromDB);
+
+          if (!passwordMatch) {
+            return res.status(400).json({
+              error: "Old password doesn't match",
+              status: 1,
+            });
+          }
+
+          // Hash the new password
+          const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+
+          // Update the password in the database
+          conn.query(
+            "UPDATE Members SET password=? WHERE mid=?",
+            [hashedNewPassword, memberId],
+            (err, result) => {
+              if (err) {
+                console.error("Error updating account:", err);
+                return res.status(500).json({ error: "Error updating account", status: 1 });
+              }
+              return res.json({
+                message: "Your account password has been updated!",
+                status: 0,
+              });
+            }
+          );
+        } catch (error) {
+          console.error("Error:", error);
+          return res.status(500).json({ error: "Error updating password", status: 1 });
+        }
+      }
+    );
+  } catch (error) {
+    console.error("Error:", error);
+    return res.status(500).json({ error: "Server error", status: 1 });
+  }
+});
