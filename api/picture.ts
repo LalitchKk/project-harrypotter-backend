@@ -91,7 +91,7 @@ router.post("/", upload.single("image"), async (req, res) => {
     );
   });
 
-  router.get("/:pid", (req, res) => {
+  router.get("/pid/:pid", (req, res) => {
     const pictureId = req.params.pid; 
     conn.query(
         "SELECT `pid`, `pic`, `total_votes`, `charac_name`, DATE_FORMAT(`create_at`, '%Y-%m-%d') AS create_date, `mid` FROM `Picture` WHERE pid = ?",
@@ -185,4 +185,31 @@ router.delete("/:id", (req, res) => {
     }
   });
 });
+
+router.get("/random", (req, res) => {
+  conn.query(
+    "SELECT `pid`, `pic`, `total_votes`, `charac_name`, DATE_FORMAT(`create_at`, '%Y-%m-%d') AS create_date, `mid` FROM `Picture` ORDER BY RAND() LIMIT 2",
+    (err, result, fields) => {
+      if (err) {
+        console.error("Error fetching data:", err);
+        return res.status(500).json({ error: "Internal server error" });
+      }
+      res.json(result);
+    }
+  );
+});
+
+router.get("/randomMosely", (req, res) => {
+  conn.query(
+    "SELECT `pid`, `pic`, `total_votes`, `charac_name`, DATE_FORMAT(`create_at`, '%Y-%m-%d') AS create_date, `mid` FROM `Picture` CROSS JOIN (SELECT MIN(total_votes) AS min_votes, MAX(total_votes) AS max_votes FROM `Picture`) AS range_votes ORDER BY ABS(total_votes - ROUND(range_votes.min_votes + (RAND() * (range_votes.max_votes - range_votes.min_votes)))), RAND() LIMIT 2",
+    (err, result, fields) => {
+      if (err) {
+        console.error("Error fetching data:", err);
+        return res.status(500).json({ error: "Internal server error" });
+      }
+      res.json(result);
+    }
+  );
+});
+
 
