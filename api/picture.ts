@@ -134,3 +134,31 @@ router.post("/", upload.single("image"), async (req, res) => {
         res.status(200).json({ affected_row: result.affectedRows, status: 1 });
     });
 });
+
+
+router.delete("/:id", (req, res) => {
+  let id = +req.params.id;
+  
+  // Check if the picture with the specified ID exists
+  conn.query("SELECT * FROM Picture WHERE pid = ?", [id], (err, result) => {
+    if (err) {
+      console.error("Error checking picture existence:", err);
+      return res.status(500).json({ error: "Error checking picture existence", status: 1 });
+    }
+
+    // If the picture exists, proceed with deletion; otherwise, return an error
+    if (result.length > 0) {
+      // Picture exists, proceed with deletion
+      conn.query("DELETE FROM Picture WHERE pid = ?", [id], (err, result) => {
+        if (err) {
+          console.error("Error deleting picture:", err);
+          return res.status(500).json({ error: "Error deleting picture", status: 1 });
+        }
+        res.status(200).json({ affected_row: result.affectedRows,starus:0 });
+      });
+    } else {
+      // Picture not found, return an error response
+      res.status(404).json({ error: "Picture not found", status: 1 });
+    }
+  });
+});
