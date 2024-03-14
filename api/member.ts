@@ -1,5 +1,6 @@
 import * as bcrypt from "bcrypt";
 import express from "express";
+import { Response } from "express-serve-static-core";
 import { initializeApp } from "firebase/app";
 import {
   getDownloadURL,
@@ -177,70 +178,67 @@ router.delete("/:id", (req, res) => {
 
 router.put("/:id", upload.single("image"), async (req, res) => {
   try {
-    const dateTime = giveCurrentDateTime();
-    var image=imageURL;
+      const id = req.params.id;
+      const member = req.body;
+      const dateTime = giveCurrentDateTime();
+      let image = "";
 
-    // Check if image was uploaded
-    if (req.file && req.file.originalname) {
-      const storageRef = ref(
-        storage,
-        `image/${req.file.originalname + "       " + dateTime}`
-      );
-      const metadata = { contentType: req.file.mimetype };
+      // Check if image was uploaded
+      if (req.file && req.file.originalname) {
+          const storageRef = ref(
+              storage,
+              `image/${req.file.originalname + "       " + dateTime}`
+          );
+          const metadata = { contentType: req.file.mimetype };
 
-      // Upload image to storage
-      const snapshot = await uploadBytesResumable(storageRef, req.file.buffer, metadata);
-      const downloadURL = await getDownloadURL(snapshot.ref);
-      image = downloadURL;
-    }
+          // Upload image to storage
+          const snapshot = await uploadBytesResumable(storageRef, req.file.buffer, metadata);
+          image = await getDownloadURL(snapshot.ref);
+      } else {
+          // Fetch image URL from the database if not uploaded
+          conn.query("SELECT image FROM Members WHERE mid = ?", [id], (err, result) => {
+              if (err) {
+                  console.error("Database error:", err);
+                  return res.json({ message: "Database error", status: 1 });
+              }
+              if (result.length === 0) {
+                  return res.json({ message: "Member not found", status: 1 });
+              }
+              image = result[0].image;
 
-    const id = req.params.id;
-    const member = req.body;
-    const password = member.password;
-
-    // Check if the member exists
-    conn.query(
-      "SELECT * FROM Members WHERE mid = ?",
-      [id],
-      async (err, result, fields) => {
-        if (err) {
-          console.error("Database error:", err);
-          return res.json({ error: "Database error", status: 2 });
-        }
-
-        if (result.length === 0) {
-          return res.json({
-            error: "Member not found",
-            status: 1,
+              // Update member's information in the database
+              updateMember(id, member, image, res);
           });
-        }
-
-        try {
-          const hash = await bcrypt.hash(password, 10);
-          let sql = "UPDATE Members SET password=?,  image=?, create_at=? WHERE mid=?";
-          sql = mysql.format(sql, [hash, image, dateTime, id]);
-
-          conn.query(sql, (err, result) => {
-            if (err) {
-              console.error("Error updating account:", err);
-              return res.json({ error: "Error updating account", status: 2, err });
-            }
-            return res.json({
-              message: "Your account has been updated!",
-              status: 0,
-            });
-          });
-        } catch (error) {
-          console.error("Error generating hash:", error);
-          return res.json({ error: "Error generating hash", status: 2 });
-        }
       }
-    );
+
+      // If image was uploaded, update member in the database
+      if (image !== "") {
+          updateMember(id, member, image, res);
+      }
   } catch (error) {
-    console.error("Error:", error);
-    return res.json({ error: "Server error", status: 2 });
+      console.error("Error:", error);
+      return res.json({ message: "Server error", status: 1 });
   }
 });
+
+// Function to update member's information in the database
+function updateMember(id: string, member: { username: any; }, image: string,res: Response<any, Record<string, any>, number>) {
+  const username = member.username;
+
+  let sql = "UPDATE Members SET username=?, image=? WHERE mid=?";
+  sql = mysql.format(sql, [username, image, id]);
+
+  conn.query(sql, (err, result) => {
+      if (err) {
+          console.error("Error updating account:", err);
+          return res.json({ message: "Error updating account", status: 1});
+      }
+      return res.json({
+          message: "Your account has been updated!",
+          status: 0,
+      });
+  });
+}
 
 router.put("/changePassword/:id", async (req, res) => {
   try {
