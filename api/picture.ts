@@ -199,9 +199,9 @@ router.get("/random", (req, res) => {
   );
 });
 
-router.get("/randomMosely", (req, res) => {
+router.get("/u", (req, res) => {
   conn.query(
-    "SELECT `pid`, `pic`, `total_votes`, `charac_name`, DATE_FORMAT(`create_at`, '%Y-%m-%d') AS create_date, `mid` FROM `Picture` CROSS JOIN (SELECT MIN(total_votes) AS min_votes, MAX(total_votes) AS max_votes FROM `Picture`) AS range_votes ORDER BY ABS(total_votes - ROUND(range_votes.min_votes + (RAND() * (range_votes.max_votes - range_votes.min_votes)))), RAND() LIMIT 2",
+    "SELECT `pid`, `pic`, `total_votes`, `charac_name`, DATE_FORMAT(`create_at`, '%Y-%m-%d') AS create_date, `mid` FROM `Picture` CROSS JOIN (SELECT MIN(total_votes) AS min_votes, MAX(total_votes) AS max_votes FROM `Picture`) AS range_votes ORDER BY ABS(total_votes - ROUND(range_votes.min_votes + (RAND() * (range_votes.max_votes - range_votes.min_votes)))), RAND()) LIMIT 2",
     (err, result, fields) => {
       if (err) {
         console.error("Error fetching data:", err);
