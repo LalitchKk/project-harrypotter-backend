@@ -3,17 +3,14 @@ import express from "express";
 import { Response } from "express-serve-static-core";
 import { initializeApp } from "firebase/app";
 import {
-  getDownloadURL,
-  getStorage,
-  ref,
-  uploadBytesResumable,
+  getStorage
 } from "firebase/storage";
 import multer from "multer";
 import mysql from "mysql";
 import config from "../config";
 import { conn } from "../dbconnect";
 import { MemberPostRequest } from "../model/MemberRequest";
-import { giveCurrentDateTime, imageURL } from "./myConst";
+import { giveCurrentDateTime, uploadImage } from "./myConst";
 
 export const router = express.Router();
 
@@ -51,84 +48,55 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 router.post("/", upload.single("image"), async (req, res) => {
   const dateTime = giveCurrentDateTime();
-  var image=imageURL;
 
-  if (!req.file || !req.file.originalname) {
-    imageURL;
-  } else {
-    const storageRef = ref(
-      storage,
-      `image/${req.file.originalname + "       " + dateTime}`
-    );
-    const metadata = {
-      contentType: req.file.mimetype,
-    };
-
-    try {
-      const snapshot = await uploadBytesResumable(
-        storageRef,
-        req.file.buffer,
-        metadata
-      );
-
-      const downloadURL = await getDownloadURL(snapshot.ref);
-      image = downloadURL;
-    } catch (error) {
-      console.error("Error uploading image:", error);
-      return res.json({ message: "Error uploading image", status: 1 });
-    }
+  try {
+      var image = await uploadImage(req.file, dateTime);
+  } catch (error) {
+      return res.json({ message: error, status: 1 });
   }
 
   const member: MemberPostRequest = req.body;
   const password = member.password;
 
-  conn.query(
-    "SELECT COUNT(*) AS count FROM Members WHERE username = ?",
-    [member.username],
-    (err, result, fields) => {
-      if (err) {
-        return res.json({ message: "Database error", status: 1 });
-      }
-
-      const count = result[0].count;
-
-      if (count > 0) {
-        return res.json({
+  // Check if username already exists in the database
+  const isUsernameDuplicate = await checkUsernameDuplicate("", member.username);
+  if (isUsernameDuplicate) {
+      return res.json({
           message: "An account with this username already exists",
           status: 1,
-        });
-      } else {
-        bcrypt
-          .hash(password, 10)
-          .then((hash) => {
-            let sql =
+      });
+  }
+
+  // Insert new member if username is not duplicate
+  bcrypt
+      .hash(password, 10)
+      .then((hash) => {
+          let sql =
               "INSERT INTO Members (`username`, `password`, `status`, `image`, `create_at`) VALUES (?,?,?,?,?)";
-            sql = mysql.format(sql, [
+          sql = mysql.format(sql, [
               member.username,
               hash,
               member.status,
               image,
               dateTime,
-            ]);
+          ]);
 
-            conn.query(sql, (err, result) => {
+          conn.query(sql, (err, result) => {
               if (err) {
-                return res.json({ message: "Error creating account", status: 1,error:err });
+                  return res.json({ message: "Error creating account", status: 1, error: err });
               }
               return res.json({
-                message: "Your account has been created!",
-                status: 0,
+                  message: "Your account has been created!",
+                  status: 0,
               });
-            });
-          })
-          .catch((err) => {
-            console.error("Error generating hash:", err);
-            return res.json({ message: "Error generating hash", status: 1 });
           });
-      }
-    }
-  );
+      })
+      .catch((err) => {
+          console.error("Error generating hash:", err);
+          return res.json({ message: "Error generating hash", status: 1 });
+      });
 });
+
 
 
 router.post("/login", (req, res) => {
@@ -181,19 +149,16 @@ router.put("/:id", upload.single("image"), async (req, res) => {
       const dateTime = giveCurrentDateTime();
       let image = "";
 
-      // Check if image was uploaded
-      if (req.file && req.file.originalname) {
-          const storageRef = ref(
-              storage,
-              `image/${req.file.originalname + "       " + dateTime}`
-          );
-          const metadata = { contentType: req.file.mimetype };
+      // Use uploadImage function to handle image upload
+      try {
+          image = await uploadImage(req.file, dateTime);
+      } catch (error) {
+          console.error("Error uploading image:", error);
+          return res.json({ message: "Error uploading image", status: 1 });
+      }
 
-          // Upload image to storage
-          const snapshot = await uploadBytesResumable(storageRef, req.file.buffer, metadata);
-          image = await getDownloadURL(snapshot.ref);
-      } else {
-          // Fetch image URL from the database if not uploaded
+      // Fetch image URL from the database if not uploaded
+      if (!req.file || !req.file.originalname) {
           conn.query("SELECT image FROM Members WHERE mid = ?", [id], async (err, result) => {
               if (err) {
                   console.error("Database error:", err);
@@ -212,10 +177,8 @@ router.put("/:id", upload.single("image"), async (req, res) => {
                   return res.json({ message: "Username already exists", status: 1 });
               }
           });
-      }
-
-      // If image was uploaded, update member in the database if username is not duplicate
-      if (image !== "") {
+      } else {
+          // If image was uploaded, update member in the database if username is not duplicate
           const isUsernameDuplicate = await checkUsernameDuplicate(id, member.username);
           if (!isUsernameDuplicate) {
               updateMember(id, member, image, res);

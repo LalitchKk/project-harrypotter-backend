@@ -79,7 +79,7 @@ router.post("/", upload.single("image"), async (req, res) => {
   router.get("/member/:mid", (req, res) => {
     const memberId = req.params.mid;
     conn.query(
-      "SELECT `pid`, `pic`, `total_votes`, `charac_name`, DATE_FORMAT(`create_at`, '%Y-%m-%d') AS create_date,`mid` FROM `Picture` WHERE mid = ?",
+      "SELECT `pid`, `pic`, `total_votes`, `charac_name`, DATE_FORMAT(`create_at`, '%Y-%m-%d') AS create_date, `mid` FROM `Picture` WHERE `mid` = ? ORDER BY `total_votes` DESC",
       memberId,
       (err, result, fields) => {
         if (err) {
