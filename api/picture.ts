@@ -19,7 +19,7 @@ router.get("/", (req, res) => {
     (err, result, fields) => {
       if (err) {
         console.error("Error fetching data:", err);
-        return res.status(500).json({ error: "Internal server error" });
+        return res.json({ error: "Internal server error" });
       }
       res.json(result);
     }
@@ -32,7 +32,7 @@ router.post("/", upload.single("image"), async (req, res) => {
 
   // Check if image is provided
   if (!req.file || !req.file.originalname) {
-      return res.status(400).json({ error: "Image is required", status: 1 });
+      return res.json({ error: "Image is required", status: 1 });
   } else {
       const storageRef = ref(
           storage,
@@ -53,7 +53,7 @@ router.post("/", upload.single("image"), async (req, res) => {
           image = downloadURL;
       } catch (error) {
           console.error("Error uploading image:", error);
-          return res.status(500).json({ error: "Error uploading image", status: 1 });
+          return res.json({ error: "Error uploading image", status: 1 });
       }
   }
 
@@ -70,7 +70,7 @@ router.post("/", upload.single("image"), async (req, res) => {
   conn.query(sql, (err, result) => {
       if (err) throw err;
       res
-          .status(201)
+          
           .json({ affected_row: result.affectedRows, last_idx: result.insertId ,status:1});
   });
 });
@@ -84,9 +84,9 @@ router.post("/", upload.single("image"), async (req, res) => {
       (err, result, fields) => {
         if (err) {
           console.error("Error fetching data:", err);
-          return res.status(500).json({ error: "Internal server error" });
+          return res.json({ message: "Internal server error",status:1 });
         }
-        res.json(result);
+        res.json(result+{status:0});
       }
     );
   });
@@ -99,12 +99,12 @@ router.post("/", upload.single("image"), async (req, res) => {
         (err, result, fields) => {
             if (err) {
                 console.error("Error fetching picture:", err);
-                return res.json({ error: "Internal server error",status:1 });
+                return res.json({ message: "Internal server error",status:1 });
             }
 
             // Check if the result array is empty (no picture found)
             if (result.length === 0) {
-                return res.json({ error: "Picture not found", status: 1 });
+                return res.json({ message: "Picture not found", status: 1 });
             }
 
             // Picture found, return it
@@ -117,7 +117,7 @@ router.post("/", upload.single("image"), async (req, res) => {
   router.put("/:id", upload.single("image"), async (req, res) => {
     // Check if image is provided
     if (!req.file || !req.file.originalname) {
-        return res.status(400).json({ error: "Image is required", status: 1 });
+        return res.json({ message: "Image is required", status: 1 });
     } else {
         const storageRef = ref(
             storage,
@@ -138,7 +138,7 @@ router.post("/", upload.single("image"), async (req, res) => {
             image = downloadURL;
         } catch (error) {
             console.error("Error uploading image:", error);
-            return res.status(500).json({ error: "Error uploading image", status: 1 });
+            return res.json({ message: "Error uploading image", status: 1 });
         }
     }
 
@@ -154,7 +154,7 @@ router.post("/", upload.single("image"), async (req, res) => {
     ]);
     conn.query(sql, (err, result) => {
         if (err) throw err;
-        res.status(200).json({ affected_row: result.affectedRows, status: 1 });
+        res.json({ affected_row: result.affectedRows, status: 0 });
     });
 });
 
@@ -166,7 +166,7 @@ router.delete("/:id", (req, res) => {
   conn.query("SELECT * FROM Picture WHERE pid = ?", [id], (err, result) => {
     if (err) {
       console.error("Error checking picture existence:", err);
-      return res.status(500).json({ error: "Error checking picture existence", status: 1 });
+      return res.json({ message: "Error checking picture existence", status: 1 });
     }
 
     // If the picture exists, proceed with deletion; otherwise, return an error
@@ -175,13 +175,13 @@ router.delete("/:id", (req, res) => {
       conn.query("DELETE FROM Picture WHERE pid = ?", [id], (err, result) => {
         if (err) {
           console.error("Error deleting picture:", err);
-          return res.status(500).json({ error: "Error deleting picture", status: 1 });
+          return res.status(500).json({ message: "Error deleting picture", status: 1 });
         }
-        res.status(200).json({ affected_row: result.affectedRows,starus:0 });
+        res.json({message:"Delete Success", affected_row: result.affectedRows,starus:0 });
       });
     } else {
       // Picture not found, return an error response
-      res.status(404).json({ error: "Picture not found", status: 1 });
+      res.json({ message: "Picture not found", status: 1 });
     }
   });
 });
@@ -192,7 +192,7 @@ router.get("/random", (req, res) => {
     (err, result, fields) => {
       if (err) {
         console.error("Error fetching data:", err);
-        return res.status(500).json({ error: "Internal server error" });
+        return res.json({ message: "Internal server error" });
       }
       res.json(result);
     }
@@ -205,9 +205,9 @@ router.get("/u", (req, res) => {
     (err, result, fields) => {
       if (err) {
         console.error("Error fetching data:", err);
-        return res.status(500).json({ error: "Internal server error" });
+        return res.json({ message: "Internal server error" ,status:1});
       }
-      res.json(result);
+      res.json(result+{status:0});
     }
   );
 });

@@ -21,13 +21,13 @@ router.get("/", (req, res) => {
   conn.query("SELECT mid, username, password, status, image, DATE(create_at) AS create_date FROM Members", (err, result, fields) => {
     if (err) {
       console.error("Error fetching data:", err);
-      return res.status(500).json({ error: "Internal server error" });
+      return res.json({ message: "Internal server error",status:1 });
     }
     // Modify the response to remove the time part from the create_date field
     result.forEach((entry:any) => {
       entry.create_date = entry.create_date.toISOString().split('T')[0];
     });
-    res.json(result);
+    res.json(result+{status:0});
   });
 });
 router.get("/:id", (req, res) => {
@@ -35,7 +35,7 @@ router.get("/:id", (req, res) => {
   conn.query("SELECT mid, username, password, status, image, DATE(create_at) AS create_date FROM Members WHERE mid = ?", [memberId], (err, result, fields) => {
     if (err) {
       console.error("Error fetching data:", err);
-      return res.status(500).json({ error: "Internal server error" });
+      return res.json({ error: "Internal server error" });
     }
     result.forEach((entry: any) => {
       entry.create_date = entry.create_date.toISOString().split('T')[0];
@@ -75,7 +75,7 @@ router.post("/", upload.single("image"), async (req, res) => {
       image = downloadURL;
     } catch (error) {
       console.error("Error uploading image:", error);
-      return res.json({ error: "Error uploading image", status: 2 });
+      return res.json({ message: "Error uploading image", status: 1 });
     }
   }
 
@@ -87,14 +87,14 @@ router.post("/", upload.single("image"), async (req, res) => {
     [member.username],
     (err, result, fields) => {
       if (err) {
-        return res.json({ error: "Database error", status: 2 });
+        return res.json({ message: "Database error", status: 1 });
       }
 
       const count = result[0].count;
 
       if (count > 0) {
         return res.json({
-          error: "An account with this username already exists",
+          message: "An account with this username already exists",
           status: 1,
         });
       } else {
@@ -113,17 +113,17 @@ router.post("/", upload.single("image"), async (req, res) => {
 
             conn.query(sql, (err, result) => {
               if (err) {
-                return res.json({ message: "Error creating account", status: 2,error:err });
+                return res.json({ message: "Error creating account", status: 1,error:err });
               }
               return res.json({
-                error: "Your account has been created!",
+                message: "Your account has been created!",
                 status: 0,
               });
             });
           })
           .catch((err) => {
             console.error("Error generating hash:", err);
-            return res.json({ error: "Error generating hash", status: 2 });
+            return res.json({ message: "Error generating hash", status: 1 });
           });
       }
     }
@@ -139,20 +139,19 @@ router.post("/login", (req, res) => {
   conn.query(sql, (err, result) => {
     if (err) {
       console.error(err);
-      return res.status(500).json({ message: "Internal server error", status: 1,error:err });
+      return res.json({ message: "Internal server error", status: 1,error:err });
     }
 
     if (result == null || result.length === 0) {
       // User not found
       return res
-        .status(401)
         .json({ message: "Username or password is incorrect", status: 1});
     }
     // Compare body password with the hashed password from the database
     bcrypt.compare(password, result[0].password, (bcryptErr, bcryptResult) => {
       if (bcryptErr) {
         console.error(bcryptErr);
-        return res.status(500).json({ message: "Internal server error", status: 1,error:err });
+        return res.json({ message: "Internal server error", status: 1,error:err });
       }
 
       if (bcryptResult) {
@@ -161,7 +160,6 @@ router.post("/login", (req, res) => {
       } else {
         // Passwords do not match
         return res
-          .status(401)
           .json({ message: "Username or password is incorrect", status: 1,error:err });
       }
     });
@@ -172,7 +170,7 @@ router.delete("/:id", (req, res) => {
   let id = +req.params.id;
   conn.query("delete from Members where mid = ?", [id], (err, result) => {
     if (err) throw err;
-    res.status(200).json({ affected_row: result.affectedRows });
+    res.json({ affected_row: result.affectedRows,message:"Delete Success",status:0 });
   });
 });
 
