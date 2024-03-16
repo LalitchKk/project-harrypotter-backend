@@ -21,7 +21,7 @@ router.get("/", (req, res) => {
         console.error("Error fetching data:", err);
         return res.json({ error: "Internal server error" });
       }
-      res.json(result);
+      res.json({status:0,picture:result});
     }
   );
 });
@@ -86,7 +86,8 @@ router.post("/", upload.single("image"), async (req, res) => {
           console.error("Error fetching data:", err);
           return res.json({ message: "Internal server error",status:1 });
         }
-        res.json(result+{status:0});
+        res.json({status:0,picture:result});
+        
       }
     );
   });
@@ -108,7 +109,7 @@ router.post("/", upload.single("image"), async (req, res) => {
             }
 
             // Picture found, return it
-            res.json(result);
+            res.json({status:0,picture:result});
         }
     );
 });
@@ -194,7 +195,7 @@ router.get("/random", (req, res) => {
         console.error("Error fetching data:", err);
         return res.json({ message: "Internal server error" });
       }
-      res.json(result);
+      res.json({status:0,picture:result});
     }
   );
 });
@@ -207,7 +208,7 @@ router.get("/u", (req, res) => {
         console.error("Error fetching data:", err);
         return res.json({ message: "Internal server error" ,status:1});
       }
-      res.json(result+{status:0});
+      res.json({status:0,picture:result});
     }
   );
 });

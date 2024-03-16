@@ -27,7 +27,7 @@ router.get("/", (req, res) => {
     result.forEach((entry:any) => {
       entry.create_date = entry.create_date.toISOString().split('T')[0];
     });
-    res.json(result+{status:0});
+    res.json({status:0,picture:result});
   });
 });
 router.get("/:id", (req, res) => {
@@ -40,7 +40,7 @@ router.get("/:id", (req, res) => {
     result.forEach((entry: any) => {
       entry.create_date = entry.create_date.toISOString().split('T')[0];
     });
-    res.json(result);
+    res.json({status:0,picture:result});
   });
 });
 
