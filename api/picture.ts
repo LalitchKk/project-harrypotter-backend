@@ -9,7 +9,7 @@ import multer from "multer";
 import mysql from "mysql";
 import { conn } from "../dbconnect";
 import { giveCurrentDateTime, imageURL } from "./myConst";
-const upload = multer(); // Initialize multer without specifying destination
+const upload = multer(); 
 const storage = getStorage();
 export const router = express.Router();
 

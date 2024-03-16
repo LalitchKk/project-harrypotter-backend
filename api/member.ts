@@ -27,7 +27,7 @@ router.get("/", (req, res) => {
     result.forEach((entry:any) => {
       entry.create_date = entry.create_date.toISOString().split('T')[0];
     });
-    res.json({status:0,picture:result});
+    res.json({status:0,member:result});
   });
 });
 router.get("/:id", (req, res) => {
@@ -194,7 +194,7 @@ router.put("/:id", upload.single("image"), async (req, res) => {
           image = await getDownloadURL(snapshot.ref);
       } else {
           // Fetch image URL from the database if not uploaded
-          conn.query("SELECT image FROM Members WHERE mid = ?", [id], (err, result) => {
+          conn.query("SELECT image FROM Members WHERE mid = ?", [id], async (err, result) => {
               if (err) {
                   console.error("Database error:", err);
                   return res.json({ message: "Database error", status: 1 });
@@ -204,14 +204,24 @@ router.put("/:id", upload.single("image"), async (req, res) => {
               }
               image = result[0].image;
 
-              // Update member's information in the database
-              updateMember(id, member, image, res);
+              // Update member's information in the database if username is not duplicate
+              const isUsernameDuplicate = await checkUsernameDuplicate(id, member.username);
+              if (!isUsernameDuplicate) {
+                  updateMember(id, member, image, res);
+              } else {
+                  return res.json({ message: "Username already exists", status: 1 });
+              }
           });
       }
 
-      // If image was uploaded, update member in the database
+      // If image was uploaded, update member in the database if username is not duplicate
       if (image !== "") {
-          updateMember(id, member, image, res);
+          const isUsernameDuplicate = await checkUsernameDuplicate(id, member.username);
+          if (!isUsernameDuplicate) {
+              updateMember(id, member, image, res);
+          } else {
+              return res.json({ message: "Username already exists", status: 1 });
+          }
       }
   } catch (error) {
       console.error("Error:", error);
@@ -219,8 +229,25 @@ router.put("/:id", upload.single("image"), async (req, res) => {
   }
 });
 
+// Function to check if the username already exists in the database
+async function checkUsernameDuplicate(id: string, username: string): Promise<boolean> {
+  return new Promise<boolean>((resolve, reject) => {
+      const sql = "SELECT COUNT(*) AS count FROM Members WHERE username = ? AND mid != ?";
+      const values = [username, id];
+      conn.query(sql, values, (err, result) => {
+          if (err) {
+              console.error("Error checking username duplicate:", err);
+              reject(err);
+          } else {
+              const count = result[0].count;
+              resolve(count > 0);
+          }
+      });
+  });
+}
+
 // Function to update member's information in the database
-function updateMember(id: string, member: { username: any; }, image: string,res: Response<any, Record<string, any>, number>) {
+function updateMember(id: string, member: { username: any; }, image: string, res: Response<any, Record<string, any>, number>) {
   const username = member.username;
 
   let sql = "UPDATE Members SET username=?, image=? WHERE mid=?";
@@ -229,7 +256,7 @@ function updateMember(id: string, member: { username: any; }, image: string,res:
   conn.query(sql, (err, result) => {
       if (err) {
           console.error("Error updating account:", err);
-          return res.json({ message: "Error updating account", status: 1});
+          return res.json({ message: "Error updating account", status: 1 });
       }
       return res.json({
           message: "Your account has been updated!",
