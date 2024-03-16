@@ -1,16 +1,9 @@
 import express from "express";
-import {
-  getDownloadURL,
-  getStorage,
-  ref,
-  uploadBytesResumable,
-} from "firebase/storage";
 import multer from "multer";
 import mysql from "mysql";
 import { conn } from "../dbconnect";
-import { giveCurrentDateTime, imageURL } from "./myConst";
+import { giveCurrentDateTime, uploadImage } from "./myConst";
 const upload = multer(); 
-const storage = getStorage();
 export const router = express.Router();
 
 router.get("/", (req, res) => {
@@ -28,33 +21,11 @@ router.get("/", (req, res) => {
 
 router.post("/", upload.single("image"), async (req, res) => {
   const dateTime = giveCurrentDateTime();
-  let image = imageURL;
 
-  // Check if image is provided
-  if (!req.file || !req.file.originalname) {
-      return res.json({ error: "Image is required", status: 1 });
-  } else {
-      const storageRef = ref(
-          storage,
-          `image/${req.file.originalname + "       " + dateTime}`
-      );
-      const metadata = {
-          contentType: req.file.mimetype,
-      };
-
-      try {
-          const snapshot = await uploadBytesResumable(
-              storageRef,
-              req.file.buffer,
-              metadata
-          );
-
-          const downloadURL = await getDownloadURL(snapshot.ref);
-          image = downloadURL;
-      } catch (error) {
-          console.error("Error uploading image:", error);
-          return res.json({ error: "Error uploading image", status: 1 });
-      }
+  try {
+      var image = await uploadImage(req.file, dateTime);
+  } catch (error) {
+      return res.json({ message: error, status: 1 });
   }
 
   const picture = req.body;
@@ -115,48 +86,42 @@ router.post("/", upload.single("image"), async (req, res) => {
 });
 
 
-  router.put("/:id", upload.single("image"), async (req, res) => {
-    // Check if image is provided
-    if (!req.file || !req.file.originalname) {
-        return res.json({ message: "Image is required", status: 1 });
-    } else {
-        const storageRef = ref(
-            storage,
-            `image/${req.file.originalname + "       " }`
-        );
-        const metadata = {
-            contentType: req.file.mimetype,
-        };
+router.put("/:id", upload.single("image"), async (req, res) => {
+  try {
+      // Check if image not have
+      if (!req.file || !req.file.originalname) {
+          return res.json({ message: "Image is required", status: 1 });
+      }
 
-        try {
-            const snapshot = await uploadBytesResumable(
-                storageRef,
-                req.file.buffer,
-                metadata
-            );
+      // Upload image and get download URL
+      const dateTime = giveCurrentDateTime();
+      let image = "";
+      try {
+          image = await uploadImage(req.file, dateTime);
+      } catch (error) {
+          console.error("Error uploading image:", error);
+          return res.json({ message: "Error uploading image", status: 1 });
+      }
 
-            const downloadURL = await getDownloadURL(snapshot.ref);
-            image = downloadURL;
-        } catch (error) {
-            console.error("Error uploading image:", error);
-            return res.json({ message: "Error uploading image", status: 1 });
-        }
-    }
+      const picture = req.body;
+      const id = req.params.id;
 
-    var image;
-    const picture = req.body;
-    const id = req.params.id;
-    let sql =
-        "UPDATE `Picture` SET `pic`=?,`charac_name`=? WHERE `pid`=?";
-    sql = mysql.format(sql, [
-        image,
-        picture.charac_name,
-        id // Use ID from request params
-    ]);
-    conn.query(sql, (err, result) => {
-        if (err) throw err;
-        res.json({ affected_row: result.affectedRows, status: 0 });
-    });
+      // Update picture  in  database
+      let sql =
+          "UPDATE `Picture` SET `pic`=?,`charac_name`=? WHERE `pid`=?";
+      sql = mysql.format(sql, [image, picture.charac_name, id]);
+
+      conn.query(sql, (err, result) => {
+          if (err) {
+              console.error("Error updating picture:", err);
+              return res.json({ message: "Error updating picture", status: 1 });
+          }
+          res.json({ affected_row: result.affectedRows, status: 0 });
+      });
+  } catch (error) {
+      console.error("Error:", error);
+      return res.json({ message: "Server error", status: 1 });
+  }
 });
 
 

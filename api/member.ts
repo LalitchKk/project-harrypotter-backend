@@ -98,7 +98,6 @@ router.post("/", upload.single("image"), async (req, res) => {
 });
 
 
-
 router.post("/login", (req, res) => {
   const { username, password } = req.body;
   let sql = "SELECT * FROM Members WHERE username = ?";
