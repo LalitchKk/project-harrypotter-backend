@@ -1,12 +1,12 @@
 import express from "express";
 import { conn } from "../dbconnect";
-import { Votes } from "../model/VoteRequest";
+import { VoteEntry, Votes } from "../model/VoteRequest";
 import { giveCurrentDateTime } from "./myConst";
 export const router = express.Router();
 
 router.get("/", (req, res) => {
   conn.query(
-    "SELECT vid,pid, vote,points, DATE(create_at) AS create_date FROM Votes",
+    "SELECT vid,pid, vote,points,  DATE_FORMAT(`create_at`, '%Y-%m-%d') AS create_at FROM Votes",
     (err, result, fields) => {
       if (err) {
         console.error("Error fetching data:", err);
@@ -14,12 +14,15 @@ router.get("/", (req, res) => {
       }
       // Modify the response to remove the time part from the create_date field
       result.forEach((entry: any) => {
-        entry.create_date = entry.create_date.toISOString().split("T")[0];
+        if (entry.create_date) { // Check if create_date is defined
+          entry.create_date = new Date(entry.create_date).toISOString().split("T")[0];
+        }
       });
       res.json({ status: 0, votes: result });
     }
   );
 });
+
 
 router.post("/", (req, res) => {
   const vote: Votes[] = req.body;
@@ -32,16 +35,16 @@ router.post("/", (req, res) => {
     (err, result, fields) => {
       if (err) {
         console.error("Error querying kMost:", err);
-        return res.json({message:"Error querying kMost",status:1});
+        return res.json({ message: "Error querying kMost", status: 1 });
       }
       if (result.length === 0) {
         console.error("No data found for kMost");
-        return res.json({message:"No data found for kMost",status:1});
+        return res.json({ message: "No data found for kMost", status: 1 });
       }
       kMost = result[0].total_votes;
 
-      console.log(pic1.pid.toString,pic2.pid.toString);
-      
+      console.log(pic1.pid.toString, pic2.pid.toString);
+
       let sql =
         "SELECT pid,total_votes FROM Picture WHERE pid = ? UNION SELECT pid,total_votes FROM Picture WHERE pid = ?";
       conn.query(sql, [pic1.pid, pic2.pid], async (err, result) => {
@@ -55,7 +58,7 @@ router.post("/", (req, res) => {
         }
         const data = await result;
 
-        // old Score 
+        // old Score
         const pa = data[0].total_votes;
         const pb = data[1].total_votes;
         console.log("scA" + pa);
@@ -74,21 +77,21 @@ router.post("/", (req, res) => {
         console.log("EB" + Eb);
         // k from old score
         const ka = K(kMost, pa);
-        console.log("ka "+ka);
+        console.log("ka " + ka);
         const kb = K(kMost, pb);
-        console.log("kb "+kb);
+        console.log("kb " + kb);
 
         // points
         const point1 = ka * (va - Ea);
-        console.log("point1 "+point1);
+        console.log("point1 " + point1);
         const point2 = kb * (vb - Eb);
-        console.log("point2 "+point2);
+        console.log("point2 " + point2);
 
         // new score
         const Ra: number = pa + point1;
-        console.log("Ra "+Ra);
+        console.log("Ra " + Ra);
         const Rb: number = pb + point2;
-        console.log("Rb "+Rb);
+        console.log("Rb " + Rb);
 
         const date = giveCurrentDateTime();
 
@@ -124,33 +127,35 @@ router.post("/", (req, res) => {
           });
         }
 
-        return res.json({ message: "Points inserted successfully", status: 0,algorithm:[
+        return res.json({
+          message: "Points inserted successfully",
+          status: 0,
+          algorithm: [
             {
-                oldScore:pa,
-                winloss:va,
-                Erating:Ea,
-                Apoint:point1,
-                newScore:Ra
+              oldScore: pa,
+              winloss: va,
+              Erating: Ea,
+              Apoint: point1,
+              newScore: Ra,
             },
             {
-                oldScore:pb,
-                winloss:vb,
-                Erating:Eb,
-                Apoint:point2,
-                newScore:Rb
-            }
-        ] });
+              oldScore: pb,
+              winloss: vb,
+              Erating: Eb,
+              Apoint: point2,
+              newScore: Rb,
+            },
+          ],
+        });
       });
     }
   );
 });
 
 export function K(kMost: number, score: number): number {
-
-
-  if (score>(30 / kMost) * 100) {
+  if (score > (30 / kMost) * 100) {
     return 16;
-  } else if (score>(30 / kMost) * 100 && score>(60 / kMost) * 100) {
+  } else if (score > (30 / kMost) * 100 && score > (60 / kMost) * 100) {
     return 24;
   } else {
     return 32;
@@ -194,4 +199,113 @@ async function insertPointAsync(
       }
     );
   });
+}
+
+router.get("/:pid", (req, res) => {
+  const pid = req.params.pid;
+
+  const sql =
+    "SELECT pid, vote, SUM(points) AS totalPoint, DATE_FORMAT(`create_at`, '%Y-%m-%d') AS create_at " +
+    "FROM Votes " +
+    "WHERE `create_at` >= DATE_SUB(CURDATE(), INTERVAL 6 DAY) AND pid = ? " +
+    "GROUP BY vote, create_at " +
+    "ORDER BY `create_at`, vote";
+
+  // Execute the SQL query
+  conn.query(sql, [pid], (err, result) => {
+    if (err) {
+      console.error("Error fetching data:", err);
+      return res.json({ message: "Internal server error",status:1 });
+    }
+
+    //no picture
+    if (result.length === 0) {
+      return res.json({  message: "No data found",status: 1 });
+    }
+    
+    let dateList: number[] = []; // List of dates
+    let winList: number[] = [];  // List of winning points
+    let loseList: number[] = []; // List of losing points
+    let monthList = ""; // Name of the month 
+    let tmp:any = null;
+
+    
+    result.forEach((entry: VoteEntry) => {
+      let res = entry.vote; // The vote result (0 or 1)
+      let totalPoint = entry.totalPoint; // Total points
+      let date = new Date(entry.create_at); // Convert create_at string to Date object
+      let formattedDate = date.getDate(); // Get  day of the month
+      let month = date.getMonth() + 1; // Get the month (add 1 because January is 0)
+
+      // Set the name of the month if not already set
+      if (!monthList) {
+        monthList = setnameMonth(date);
+        tmp = month; // Update tmp with the current month
+      }
+
+      // If the month changes ->  ->  append  new month -> month
+      if (tmp !== month) {
+        monthList += '-' + setnameMonth(date);
+        tmp = month; 
+      }
+
+      // Add the formatted date to the dateList if not already present
+      if (!dateList.includes(formattedDate)) {
+        dateList.push(formattedDate);
+      }
+
+      // Find the index of the current date in dateList
+      const dateIndex = dateList.indexOf(formattedDate);
+      console.log("dateIndex"+dateIndex);
+      
+
+      // If the vote result is 0, add points to loseList at the corresponding index, else add to winList
+      if (res == 0) {
+        console.log("res ==  "+res);
+        
+        if (loseList[dateIndex] === undefined) {
+          loseList[dateIndex] = Math.abs(totalPoint);
+          winList[dateIndex] = 0;
+          console.log("loseList"+loseList);
+          console.log("winList"+winList);
+        } else {
+          loseList[dateIndex] += Math.abs(totalPoint);
+          console.log("loseList"+loseList);
+        }
+      } else if (res == 1) {
+        if (winList[dateIndex] === undefined) {
+          winList[dateIndex] = totalPoint;
+          loseList[dateIndex] = 0;
+          console.log("winList"+winList);
+          console.log("loseList"+loseList);
+        } else {
+          winList[dateIndex] += totalPoint;
+          console.log("winList"+winList);
+        }
+      }console.log("dateList -> "+dateList);
+    });
+
+    //push to list
+    while (winList.length < dateList.length) {
+      winList.push(0);
+    }
+    while (loseList.length < dateList.length) {
+      loseList.push(0);
+    }
+
+    // Send the processed data as a JSON response
+    res.json({ 
+      status: 0, 
+      monthList: monthList, 
+      dateList: dateList, 
+      winList: winList, 
+      loseList: loseList 
+    });
+  });
+});
+
+
+// get  name of  month from date
+function setnameMonth(date: Date) {
+  return new Intl.DateTimeFormat('en-US', { month: 'long' }).format(date);
 }
