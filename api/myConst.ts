@@ -2,50 +2,52 @@ import {
     getDownloadURL,
     getStorage,
     ref,
-    uploadBytesResumable
+    uploadBytesResumable,
 } from "firebase/storage";
 
 export const giveCurrentDateTime = () => {
     const today = new Date();
-    const options = { timeZone: 'Asia/Bangkok' };
-    const date = today.toLocaleString('en-US', { ...options, year: 'numeric', month: '2-digit', day: '2-digit' });
-    return date;
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0'); // Month is zero-based, so we add 1 and pad with zero if necessary
+    const day = String(today.getDate()).padStart(2, '0'); // Pad day with zero if necessary
+    return `${year}-${month}-${day}`;
 };
 
-  
-  export const imageURL = "https://firebasestorage.googleapis.com/v0/b/store-picture.appspot.com/o/image%2Fdefualt_image.jpg?alt=media&token=f7623470-c451-4488-912e-ab753a826ccb";
 
-  async function uploadImage(reqFile : any, dateTime:any) {
-    const storage = getStorage();
-    let image = imageURL;
+export const imageURL =
+  "https://firebasestorage.googleapis.com/v0/b/store-picture.appspot.com/o/image%2Fdefualt_image.jpg?alt=media&token=f7623470-c451-4488-912e-ab753a826ccb";
 
-    if (!reqFile || !reqFile.originalname) {
-        return imageURL;
-    } else {
-        const storageRef = ref(
-            storage,
-            `image/${reqFile.originalname + "       " + dateTime}`
-        );
-        const metadata = {
-            contentType: reqFile.mimetype,
-        };
+async function uploadImage(reqFile: any, dateTime: any) {
+  const storage = getStorage();
+  let image = imageURL;
 
-        try {
-            const snapshot = await uploadBytesResumable(
-                storageRef,
-                reqFile.buffer,
-                metadata
-            );
+  if (!reqFile || !reqFile.originalname) {
+    return imageURL;
+  } else {
+    const storageRef = ref(
+      storage,
+      `image/${reqFile.originalname + "       " + dateTime}`
+    );
+    const metadata = {
+      contentType: reqFile.mimetype,
+    };
 
-            const downloadURL = await getDownloadURL(snapshot.ref);
-            image = downloadURL;
-        } catch (error) {
-            console.error("Error uploading image:", error);
-            throw new Error("Error uploading image");
-        }
+    try {
+      const snapshot = await uploadBytesResumable(
+        storageRef,
+        reqFile.buffer,
+        metadata
+      );
+
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      image = downloadURL;
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      throw new Error("Error uploading image");
     }
+  }
 
-    return image;
+  return image;
 }
 export { uploadImage };
 

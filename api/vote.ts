@@ -93,8 +93,6 @@ router.post("/", (req, res) => {
         const Rb: number = pb + point2;
         console.log("Rb " + Rb);
 
-        const date = giveCurrentDateTime();
-
         const s1 = await updateScoreAsync(pic1.pid, Ra);
         if (s1 === 1) {
           return res.json({
@@ -111,7 +109,7 @@ router.post("/", (req, res) => {
           });
         }
 
-        const s3 = await insertPointAsync(pic1.pid, pic1.vote, point1, date);
+        const s3 = await insertPointAsync(pic1.pid, pic1.vote, point1);
         if (s3 === 1) {
           return res.json({
             message: "Error inserting point for pic1",
@@ -119,7 +117,7 @@ router.post("/", (req, res) => {
           });
         }
 
-        const s4 = await insertPointAsync(pic2.pid, pic2.vote, point2, date);
+        const s4 = await insertPointAsync(pic2.pid, pic2.vote, point2);
         if (s4 === 1) {
           return res.json({
             message: "Error inserting point for pic2",
@@ -179,12 +177,13 @@ async function updateScoreAsync(pid: any, point: number): Promise<number> {
   });
 }
 
+
 async function insertPointAsync(
   pid: number,
   vote: string,
-  point: number,
-  date: string
+  point: number
 ): Promise<number> {
+  const date = giveCurrentDateTime();
   return new Promise<number>((resolve, reject) => {
     conn.query(
       "INSERT INTO Votes(pid, vote, points, create_at) VALUES (?, ?, ?, ?)",
@@ -200,6 +199,8 @@ async function insertPointAsync(
     );
   });
 }
+
+
 
 router.get("/:pid", (req, res) => {
   const pid = req.params.pid;
