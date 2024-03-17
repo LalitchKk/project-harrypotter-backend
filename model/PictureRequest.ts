@@ -6,3 +6,8 @@ export interface PicturePostRequest {
     create_date: string;
     mid:         number;
 }
+
+export interface PictureData {
+    pid: number;
+    total_votes: number;
+  }
