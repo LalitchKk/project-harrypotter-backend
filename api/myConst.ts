@@ -1,16 +1,17 @@
 import {
-  getDownloadURL,
-  getStorage,
-  ref,
-  uploadBytesResumable
+    getDownloadURL,
+    getStorage,
+    ref,
+    uploadBytesResumable
 } from "firebase/storage";
 
 export const giveCurrentDateTime = () => {
     const today = new Date();
-    const date =
-      today.getFullYear() + "-" + (today.getMonth() + 1) + "-" + today.getDate();
+    const options = { timeZone: 'Asia/Bangkok' };
+    const date = today.toLocaleString('en-US', { ...options, year: 'numeric', month: '2-digit', day: '2-digit' });
     return date;
-  };
+};
+
   
   export const imageURL = "https://firebasestorage.googleapis.com/v0/b/store-picture.appspot.com/o/image%2Fdefualt_image.jpg?alt=media&token=f7623470-c451-4488-912e-ab753a826ccb";
 
