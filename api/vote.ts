@@ -14,15 +14,17 @@ router.get("/", (req, res) => {
       }
       // Modify the response to remove the time part from the create_date field
       result.forEach((entry: any) => {
-        if (entry.create_date) { // Check if create_date is defined
-          entry.create_date = new Date(entry.create_date).toISOString().split("T")[0];
+        if (entry.create_date) {
+          // Check if create_date is defined
+          entry.create_date = new Date(entry.create_date)
+            .toISOString()
+            .split("T")[0];
         }
       });
       res.json({ status: 0, votes: result });
     }
   );
 });
-
 
 router.post("/", (req, res) => {
   const vote: Votes[] = req.body;
@@ -177,7 +179,6 @@ async function updateScoreAsync(pid: any, point: number): Promise<number> {
   });
 }
 
-
 async function insertPointAsync(
   pid: number,
   vote: string,
@@ -200,8 +201,6 @@ async function insertPointAsync(
   });
 }
 
-
-
 router.get("/:pid", (req, res) => {
   const pid = req.params.pid;
 
@@ -216,21 +215,20 @@ router.get("/:pid", (req, res) => {
   conn.query(sql, [pid], (err, result) => {
     if (err) {
       console.error("Error fetching data:", err);
-      return res.json({ message: "Internal server error",status:1 });
+      return res.json({ message: "Internal server error", status: 1 });
     }
 
     //no picture
     if (result.length === 0) {
-      return res.json({  message: "No data found",status: 1 });
+      return res.json({ message: "No data found", status: 1 });
     }
-    
-    let dateList: number[] = []; // List of dates
-    let winList: number[] = [];  // List of winning points
-    let loseList: number[] = []; // List of losing points
-    let monthList = ""; // Name of the month 
-    let tmp:any = null;
 
-    
+    let dateList: number[] = []; // List of dates
+    let winList: number[] = []; // List of winning points
+    let loseList: number[] = []; // List of losing points
+    let monthList = ""; // Name of the month
+    let tmp: any = null;
+
     result.forEach((entry: VoteEntry) => {
       let res = entry.vote; // The vote result (0 or 1)
       let totalPoint = entry.totalPoint; // Total points
@@ -246,8 +244,8 @@ router.get("/:pid", (req, res) => {
 
       // If the month changes ->  ->  append  new month -> month
       if (tmp !== month) {
-        monthList += '-' + setnameMonth(date);
-        tmp = month; 
+        monthList += "-" + setnameMonth(date);
+        tmp = month;
       }
 
       // Add the formatted date to the dateList if not already present
@@ -257,33 +255,33 @@ router.get("/:pid", (req, res) => {
 
       // Find the index of the current date in dateList
       const dateIndex = dateList.indexOf(formattedDate);
-      console.log("dateIndex"+dateIndex);
-      
+      console.log("dateIndex" + dateIndex);
 
       // If the vote result is 0, add points to loseList at the corresponding index, else add to winList
       if (res == 0) {
-        console.log("res ==  "+res);
-        
+        console.log("res ==  " + res);
+
         if (loseList[dateIndex] === undefined) {
           loseList[dateIndex] = Math.abs(totalPoint);
           winList[dateIndex] = 0;
-          console.log("loseList"+loseList);
-          console.log("winList"+winList);
+          console.log("loseList" + loseList);
+          console.log("winList" + winList);
         } else {
           loseList[dateIndex] += Math.abs(totalPoint);
-          console.log("loseList"+loseList);
+          console.log("loseList" + loseList);
         }
       } else if (res == 1) {
         if (winList[dateIndex] === undefined) {
           winList[dateIndex] = totalPoint;
           loseList[dateIndex] = 0;
-          console.log("winList"+winList);
-          console.log("loseList"+loseList);
+          console.log("winList" + winList);
+          console.log("loseList" + loseList);
         } else {
           winList[dateIndex] += totalPoint;
-          console.log("winList"+winList);
+          console.log("winList" + winList);
         }
-      }console.log("dateList -> "+dateList);
+      }
+      console.log("dateList -> " + dateList);
     });
 
     //push to list
@@ -295,18 +293,26 @@ router.get("/:pid", (req, res) => {
     }
 
     // Send the processed data as a JSON response
-    res.json({ 
-      status: 0, 
-      monthList: monthList, 
-      dateList: dateList, 
-      winList: winList, 
-      loseList: loseList 
+    res.json({
+      status: 0,
+      monthList: monthList,
+      dateList: dateList,
+      winList: winList,
+      loseList: loseList,
     });
   });
 });
 
-
 // get  name of  month from date
 function setnameMonth(date: Date) {
-  return new Intl.DateTimeFormat('en-US', { month: 'long' }).format(date);
+  return new Intl.DateTimeFormat("en-US", { month: "long" }).format(date);
 }
+
+
+
+
+
+
+
+
+

@@ -7,16 +7,86 @@ const upload = multer();
 export const router = express.Router();
 
 router.get("/", (req, res) => {
-  conn.query(
-    "SELECT `pid`, `pic`, `total_votes`, `charac_name`, DATE_FORMAT(`create_at`, '%Y-%m-%d') AS create_date, `mid` FROM `Picture` ORDER BY `total_votes` DESC LIMIT 10",
-    (err, result, fields) => {
-      if (err) {
-        console.error("Error fetching data:", err);
-        return res.json({ error: "Internal server error" });
-      }
-      res.json({status:0,picture:result});
+  const yesterdayList: any[] = []; // เก็บผลลัพธ์ query ที่ดึงข้อมูลเมื่อวานมาเก็บไว้
+  const todayList: any[] = []; // เก็บผลลัพธ์ query ที่ดึงข้อมูลวันนี้มาเก็บไว้
+
+  // Query สำหรับเก็บข้อมูลเมื่อวาน
+  const yesterdaySql =
+    "SELECT p.pid, p.pic, p.total_votes, p.charac_name, DATE_FORMAT(p.create_at, '%Y-%m-%d') AS create_date, p.mid, "+
+    "IFNULL(vp.yesterday_total_points, 0) AS today_total_points, "+
+    "(p.total_votes - IFNULL(vp.yesterday_total_points, 0)) AS yesterday_total_votes "+
+    "FROM Picture p "+
+    "LEFT JOIN ( SELECT pid, SUM(points) AS yesterday_total_points "+
+    "FROM Votes WHERE DATE(create_at) = CURDATE() "+
+    "GROUP BY pid ) vp "+
+    "ON p.pid = vp.pid ORDER BY yesterday_total_votes DESC";
+  conn.query(yesterdaySql, (err, yesterdayResult) => {
+    if (err) {
+      console.error("Error fetching yesterday data:", err);
+      return res.json({ message: "Internal server error", status: 1 });
     }
-  );
+    yesterdayList.push(...yesterdayResult);
+
+    // Query สำหรับเก็บข้อมูลวันนี้
+    const todaySql =
+      "SELECT pid, pic, total_votes, charac_name, DATE_FORMAT(create_at, '%Y-%m-%d') AS create_date, mid FROM Picture ORDER BY total_votes DESC";
+    conn.query(todaySql, (err, todayResult) => {
+      if (err) {
+        console.error("Error fetching today data:", err);
+        return res.json({ message: "Internal server error", status: 1 });
+      }
+      todayList.push(...todayResult);
+
+      let rankChanged: number[] = []; // เริ่มต้นด้วยรายการว่าง
+
+      // ตรวจสอบว่าอันดับใน todayList และ yesterdayList ตรงกันหรือไม่
+      let isSameRanking: boolean = true;
+
+      for (let i = 0; i < todayList.length; i++) {
+        const yesterdayIndex = yesterdayList.findIndex(item => item.pid === todayList[i].pid);
+
+        if (yesterdayIndex === -1 || yesterdayIndex !== i) {
+          // ถ้าไม่เท่ากับ -1 หรืออันดับไม่ตรงกันกับ index ใน todayList
+          isSameRanking = false;
+          break; // หยุดการทำงานเมื่อพบอันดับที่ไม่ตรงกัน
+        }
+      }
+
+      // หาว่าอันดับเพิ่มหรือลด และเก็บค่าไว้ใน difference
+      if (!isSameRanking) {
+        for (let i = 0; i < todayList.length; i++) {
+          const yesterdayIndex = yesterdayList.findIndex(item => item.pid === todayList[i].pid);
+
+          if (yesterdayIndex !== -1) {
+            rankChanged.push(yesterdayIndex - i);
+          } else {
+            rankChanged.push(i);
+          }
+        }
+      } else {
+        // ถ้าอันดับใน todayList และ yesterdayList ตรงกัน
+        // ให้เติมค่า 0 ลงใน difference สำหรับทุกๆ รายการใน todayList
+        rankChanged = Array(todayList.length).fill(0);
+      }
+
+      for (let i = 0; i < todayList.length; i++) {
+        // เพิ่ม property "rankChanged" 
+        todayList[i].rankChanged = rankChanged[i] ? rankChanged[i] : 0; // ถ้าไม่มีการเปลี่ยนแปลงให้เป็น 0
+      }
+
+      // ส่งผลลัพธ์กลับไปให้ผู้ใช้
+      // return res.json({
+      //   status: 0,
+      //   yesterdayList: yesterdayList,
+      //   todayList: todayList, // เพิ่ม todayList เข้าไปใน JSON เพื่อดูข้อมูลได้ง่ายขึ้น
+      //   rankChanged: rankChanged, // เพิ่ม difference เข้าไปใน JSON เพื่อให้รู้ถึงการเปลี่ยนแปลงในอันดับ
+      // });
+      return res.json({
+        status: 0,
+        picture: todayList, 
+      });
+    });
+  });
 });
 
 router.post("/", upload.single("image"), async (req, res) => {
@@ -47,23 +117,23 @@ router.post("/", upload.single("image"), async (req, res) => {
 });
 
   
-  router.get("/member/:mid", (req, res) => {
-    const memberId = req.params.mid;
-    conn.query(
-      "SELECT `pid`, `pic`, `total_votes`, `charac_name`, DATE_FORMAT(`create_at`, '%Y-%m-%d') AS create_date, `mid` FROM `Picture` WHERE `mid` = ? ORDER BY `total_votes` DESC",
-      memberId,
-      (err, result, fields) => {
-        if (err) {
-          console.error("Error fetching data:", err);
-          return res.json({ message: "Internal server error",status:1 });
-        }
-        res.json({status:0,picture:result});
-        
+router.get("/member/:mid", (req, res) => {
+  const memberId = req.params.mid;
+  conn.query(
+    "SELECT `pid`, `pic`, `total_votes`, `charac_name`, DATE_FORMAT(`create_at`, '%Y-%m-%d') AS create_date, `mid` FROM `Picture` WHERE `mid` = ? ORDER BY `total_votes` DESC",
+    memberId,
+    (err, result, fields) => {
+      if (err) {
+        console.error("Error fetching data:", err);
+        return res.json({ message: "Internal server error",status:1 });
       }
-    );
-  });
+      res.json({status:0,picture:result});
+      
+    }
+  );
+});
 
-  router.get("/pid/:pid", (req, res) => {
+router.get("/pid/:pid", (req, res) => {
     const pictureId = req.params.pid; 
     conn.query(
         "SELECT `pid`, `pic`, `total_votes`, `charac_name`, DATE_FORMAT(`create_at`, '%Y-%m-%d') AS create_date, `mid` FROM `Picture` WHERE pid = ?",
