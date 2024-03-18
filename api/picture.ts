@@ -84,6 +84,7 @@ router.get("/", (req, res) => {
       return res.json({
         status: 0,
         picture: todayList, 
+        yesterdayList: yesterdayList,
       });
     });
   });
