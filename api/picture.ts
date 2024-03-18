@@ -9,6 +9,7 @@ export const router = express.Router();
 router.get("/", (req, res) => {
   const yesterdayList: any[] = []; // เก็บผลลัพธ์ query ที่ดึงข้อมูลเมื่อวานมาเก็บไว้
   const todayList: any[] = []; // เก็บผลลัพธ์ query ที่ดึงข้อมูลวันนี้มาเก็บไว้
+  const yesterdayRank: number[] = []; // เก็บ rank ของรูปภาพจากเมื่อวาน
 
   // Query สำหรับเก็บข้อมูลเมื่อวาน
   const yesterdaySql =
@@ -26,6 +27,9 @@ router.get("/", (req, res) => {
       return res.json({ message: "Internal server error", status: 1 });
     }
     yesterdayList.push(...yesterdayResult);
+
+    // เก็บ rank ของรูปภาพจากเมื่อวาน
+    yesterdayRank.push(...yesterdayList.map(item => item.pid));
 
     // Query สำหรับเก็บข้อมูลวันนี้
     const todaySql =
@@ -73,16 +77,8 @@ router.get("/", (req, res) => {
         // เพิ่ม property "rankChanged" 
         todayList[i].rankChanged = rankChanged[i] ? rankChanged[i] : 0; // ถ้าไม่มีการเปลี่ยนแปลงให้เป็น 0
 
-        // Find corresponding item in yesterdayList based on pid
-        const correspondingYesterdayItem = yesterdayList.find(item => item.pid === todayList[i].pid);
-
-        // Add yesterday_total_votes property to todayList item
-        if (correspondingYesterdayItem) {
-          todayList[i].yesterday_total_votes = correspondingYesterdayItem.yesterday_total_votes;
-        } else {
-          // If no corresponding item found, set yesterday_total_votes to 0
-          todayList[i].yesterday_total_votes = 0;
-        }
+        // เพิ่ม property "yesterdayRank"
+        todayList[i].yesterdayRank = yesterdayRank.indexOf(todayList[i].pid) !== -1 ? yesterdayRank.indexOf(todayList[i].pid) + 1 : null;
       }
 
       // ส่งผลลัพธ์กลับไปให้ผู้ใช้
