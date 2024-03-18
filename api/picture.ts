@@ -75,17 +75,16 @@ router.get("/", (req, res) => {
       }
 
       // ส่งผลลัพธ์กลับไปให้ผู้ใช้
-      // return res.json({
-      //   status: 0,
-      //   yesterdayList: yesterdayList,
-      //   todayList: todayList, // เพิ่ม todayList เข้าไปใน JSON เพื่อดูข้อมูลได้ง่ายขึ้น
-      //   rankChanged: rankChanged, // เพิ่ม difference เข้าไปใน JSON เพื่อให้รู้ถึงการเปลี่ยนแปลงในอันดับ
-      // });
       return res.json({
         status: 0,
-        picture: todayList, 
         yesterdayList: yesterdayList,
+        todayList: todayList, // เพิ่ม todayList เข้าไปใน JSON เพื่อดูข้อมูลได้ง่ายขึ้น
+        rankChanged: rankChanged, // เพิ่ม difference เข้าไปใน JSON เพื่อให้รู้ถึงการเปลี่ยนแปลงในอันดับ
       });
+      // return res.json({
+      //   status: 0,
+      //   picture: todayList, 
+      // });
     });
   });
 });

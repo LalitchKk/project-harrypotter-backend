@@ -1,17 +1,26 @@
 import {
-    getDownloadURL,
-    getStorage,
-    ref,
-    uploadBytesResumable,
+  getDownloadURL,
+  getStorage,
+  ref,
+  uploadBytesResumable,
 } from "firebase/storage";
 
 export const giveCurrentDateTime = () => {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0'); // Month is zero-based, so we add 1 and pad with zero if necessary
-    const day = String(today.getDate()).padStart(2, '0'); // Pad day with zero if necessary
-    return `${year}-${month}-${day}`;
+  // Create a new Date object and get its values in Bangkok time
+  const today = new Date();
+  const offset = 7; // Bangkok is UTC+7
+  const utc = today.getTime() + (today.getTimezoneOffset() * 60000);
+  const bangkokTime = new Date(utc + (3600000 * offset));
+
+  // Extract year, month, and day from the Bangkok time
+  const year = bangkokTime.getFullYear();
+  const month = String(bangkokTime.getMonth() + 1).padStart(2, '0'); // Month is zero-based, so we add 1 and pad with zero if necessary
+  const day = String(bangkokTime.getDate()).padStart(2, '0'); // Pad day with zero if necessary
+
+  // Return the formatted date string
+  return `${year}-${month}-${day}`;
 };
+
 
 
 export const imageURL =
