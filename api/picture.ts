@@ -37,57 +37,30 @@ router.get("/", (req, res) => {
       }
       todayList.push(...todayResult);
 
-      let rankChanged: number[] = []; // เริ่มต้นด้วยรายการว่าง
-
-      // ตรวจสอบว่าอันดับใน todayList และ yesterdayList ตรงกันหรือไม่
-      let isSameRanking: boolean = true;
-
+      // Iterate through todayList and add yesterday_total_votes property
       for (let i = 0; i < todayList.length; i++) {
-        const yesterdayIndex = yesterdayList.findIndex(item => item.pid === todayList[i].pid);
+        // Find corresponding item in yesterdayList based on pid
+        const correspondingYesterdayItem = yesterdayList.find(item => item.pid === todayList[i].pid);
 
-        if (yesterdayIndex === -1 || yesterdayIndex !== i) {
-          // ถ้าไม่เท่ากับ -1 หรืออันดับไม่ตรงกันกับ index ใน todayList
-          isSameRanking = false;
-          break; // หยุดการทำงานเมื่อพบอันดับที่ไม่ตรงกัน
+        // Add yesterday_total_votes property to todayList item
+        if (correspondingYesterdayItem) {
+          todayList[i].yesterday_total_votes = correspondingYesterdayItem.yesterday_total_votes;
+        } else {
+          // If no corresponding item found, set yesterday_total_votes to 0
+          todayList[i].yesterday_total_votes = 0;
         }
-      }
-
-      // หาว่าอันดับเพิ่มหรือลด และเก็บค่าไว้ใน difference
-      if (!isSameRanking) {
-        for (let i = 0; i < todayList.length; i++) {
-          const yesterdayIndex = yesterdayList.findIndex(item => item.pid === todayList[i].pid);
-
-          if (yesterdayIndex !== -1) {
-            rankChanged.push(yesterdayIndex - i);
-          } else {
-            rankChanged.push(i);
-          }
-        }
-      } else {
-        // ถ้าอันดับใน todayList และ yesterdayList ตรงกัน
-        // ให้เติมค่า 0 ลงใน difference สำหรับทุกๆ รายการใน todayList
-        rankChanged = Array(todayList.length).fill(0);
-      }
-
-      for (let i = 0; i < todayList.length; i++) {
-        // เพิ่ม property "rankChanged" 
-        todayList[i].rankChanged = rankChanged[i] ? rankChanged[i] : 0; // ถ้าไม่มีการเปลี่ยนแปลงให้เป็น 0
       }
 
       // ส่งผลลัพธ์กลับไปให้ผู้ใช้
       return res.json({
         status: 0,
-        yesterdayList: yesterdayList,
-        todayList: todayList, // เพิ่ม todayList เข้าไปใน JSON เพื่อดูข้อมูลได้ง่ายขึ้น
-        rankChanged: rankChanged, // เพิ่ม difference เข้าไปใน JSON เพื่อให้รู้ถึงการเปลี่ยนแปลงในอันดับ
+        picture: todayList, 
+        // yesterdayList: yesterdayList,
       });
-      // return res.json({
-      //   status: 0,
-      //   picture: todayList, 
-      // });
     });
   });
 });
+
 
 router.post("/", upload.single("image"), async (req, res) => {
   const dateTime = giveCurrentDateTime();
