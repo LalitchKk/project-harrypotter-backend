@@ -66,7 +66,7 @@ router.post("/", (req, res) => {
         console.log("scA" + pa);
         console.log("scB" + pb);
 
-        // win loss
+        // win lose
         const va = parseInt(pic1.vote);
         const vb = parseInt(pic2.vote);
         console.log("reA" + va);
@@ -135,15 +135,21 @@ router.post("/", (req, res) => {
               oldScore: pa,
               winloss: va,
               Erating: Ea,
+              k:ka,
               Apoint: point1,
               newScore: Ra,
+              algorithmEA:"EA = 1/(1+10^("+pb+"-"+pa+")/400)",
+              algorithmRA:"NewScore = "+pa+ka+"(1-"+Ea+")"
             },
             {
               oldScore: pb,
               winloss: vb,
               Erating: Eb,
+              k:kb,
               Apoint: point2,
               newScore: Rb,
+              algorithmEA:"EA = 1/(1+10^("+pa+"-"+pb+")/400)",
+              algorithmRA:"NewScore = "+pb+kb+"(1-"+Eb+")"
             },
           ],
         });
