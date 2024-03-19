@@ -327,7 +327,7 @@ router.get("/member/:id", (req, res) => {
       // ส่งผลลัพธ์กลับไปให้ผู้ใช้
       return res.json({
         status: 0,
-        todayList: filteredTodayList,
+        picture: filteredTodayList,
       });
     });
   });
