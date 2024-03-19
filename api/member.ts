@@ -27,6 +27,22 @@ router.get("/", (req, res) => {
     res.json({status:0,member:result});
   });
 });
+
+router.get("/admin/admin", (req, res) => {
+  conn.query("SELECT mid, username, password, status, image, DATE(create_at) AS create_date FROM Members WHERE status = 0", (err, result, fields) => {
+    if (err) {
+      console.error("Error fetching data:", err);
+      return res.json({ message: "Internal server error",status:1 });
+    }
+    // Modify the response to remove the time part from the create_date field
+    result.forEach((entry:any) => {
+      entry.create_date = entry.create_date.toISOString().split('T')[0];
+    });
+    res.json({status:0,member:result});
+  });
+});
+
+
 router.get("/:id", (req, res) => {
   const memberId = req.params.id;
   conn.query("SELECT mid, username, password, status, image, DATE(create_at) AS create_date FROM Members WHERE mid = ?", [memberId], (err, result, fields) => {
