@@ -323,6 +323,9 @@ router.get("/member/:id", (req, res) => {
 
       // กรองรูปภาพใน todayList เฉพาะที่มี mid เท่ากับ id
       const filteredTodayList = todayList.filter(item => item.mid === id);
+      if (filteredYesterdayList.length === 0 || filteredTodayList.length === 0) {
+        return res.json({ message: "No pictures found with the provided id", status: 1 });
+      }
 
       // ส่งผลลัพธ์กลับไปให้ผู้ใช้
       return res.json({
