@@ -15,7 +15,7 @@ import { giveCurrentDateTime, uploadImage } from "./myConst";
 export const router = express.Router();
 
 router.get("/", (req, res) => {
-  conn.query("SELECT mid, username, password, status, image, DATE(create_at) AS create_date FROM Members", (err, result, fields) => {
+  conn.query("SELECT mid, username, password, status, image, DATE(create_at) AS create_date FROM Members WHERE status = 1", (err, result, fields) => {
     if (err) {
       console.error("Error fetching data:", err);
       return res.json({ message: "Internal server error",status:1 });
