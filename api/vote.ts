@@ -139,7 +139,7 @@ router.post("/", (req, res) => {
               Apoint: point1,
               newScore: Ra,
               algorithmEA:"EA = 1/(1+10^("+pb+"-"+pa+")/400)",
-              algorithmRA:"NewScore = "+pa+ka+"(1-"+Ea+")"
+              algorithmRA:"NewScore = "+pa+"+"+ka+"(1-"+Ea+")"
             },
             {
               oldScore: pb,
@@ -149,7 +149,7 @@ router.post("/", (req, res) => {
               Apoint: point2,
               newScore: Rb,
               algorithmEA:"EA = 1/(1+10^("+pa+"-"+pb+")/400)",
-              algorithmRA:"NewScore = "+pb+kb+"(1-"+Eb+")"
+              algorithmRA:"NewScore = "+pb+"+"+kb+"(1-"+Eb+")"
             },
           ],
         });
@@ -159,14 +159,18 @@ router.post("/", (req, res) => {
 });
 
 export function K(kMost: number, score: number): number {
-  if (score > (30 / kMost) * 100) {
-    return 16;
-  } else if (score > (30 / kMost) * 100 && score > (60 / kMost) * 100) {
+  const percen1 = (90 / 100) * kMost;//90%
+  const percen2 = (60 / 100) * kMost;//60%
+
+  if (score > percen1) {
+    return 32;
+  } else if (score > percen2) {
     return 24;
   } else {
-    return 32;
+    return 16;
   }
 }
+
 
 async function updateScoreAsync(pid: any, point: number): Promise<number> {
   return new Promise<number>((resolve, reject) => {
