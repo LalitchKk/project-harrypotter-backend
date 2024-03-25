@@ -217,7 +217,7 @@ router.get("/:pid", (req, res) => {
   const sql =
     "SELECT pid, vote, SUM(points) AS totalPoint, DATE_FORMAT(`create_at`, '%Y-%m-%d') AS create_at " +
     "FROM Votes " +
-    "WHERE `create_at` >= DATE_SUB(CURDATE(), INTERVAL 6 DAY) AND pid = ? " +
+    "WHERE `create_at` >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) AND pid = ? " +
     "GROUP BY vote, create_at " +
     "ORDER BY `create_at`, vote";
 
