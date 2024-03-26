@@ -97,33 +97,33 @@ router.post("/", (req, res) => {
 
         //insert vote pa
         const s3 = await insertPointAsync(pic1.pid, pic1.vote, point1);
-        if (s3 === 1) {
+        if (s3 === 1 || s3 === 2) {
           return res.json({
             message: "Error inserting point for pic1",
             status: 1,
           });
         }
-        if (s3 === 2) {
-          return res.json({
-            message: "Please waiting ...",
-            status: 1,
-          });
-        }
+        // if (s3 === 2) {
+        //   return res.json({
+        //     message: "Please waiting ...",
+        //     status: 1,
+        //   });
+        // }
 
         //insert vote pb
         const s4 = await insertPointAsync(pic2.pid, pic2.vote, point2);
-        if (s4 === 1) {
+        if (s4 === 1 || s4 === 2) {
           return res.json({
             message: "Error inserting point for pic2",
             status: 1,
           });
         }
-        if (s4 === 2) {
-          return res.json({
-            message: "Please waiting ...",
-            status: 1,
-          });
-        }
+        // if (s4 === 2) {
+        //   return res.json({
+        //     message: "Please waiting ...",
+        //     status: 1,
+        //   });
+        // }
 
         //update score pa
         const s1 = await updateScoreAsync(pic1.pid, Ra);
