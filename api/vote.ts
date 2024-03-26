@@ -282,11 +282,26 @@ async function insertPointAsync(
         console.log("recentVoteTime:", recentVoteTime);
         console.log("previousVoteTime:", previousVoteTime);
 
-        const currentTimeBKK = new Date(currentTime.toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
+        const formatter = new Intl.DateTimeFormat('en-US', {
+          timeZone: 'Asia/Bangkok',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        });
+        
+        const currentTimeBKK = formatter.format(currentTime);
+        const currentTimeBKKTimestamp = new Date(currentTimeBKK).getTime();
+        console.log("currentTimeBKKTimestamp --->"+currentTimeBKKTimestamp);
+
+        // const currentTimeBKK = giveCurrentTime();
+        // const currentTimeBKK = new Date(currentTime.toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
         const previousVoteTimeBkk = new Date(previousVoteTime.toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
         console.log("previousVoteTime:", previousVoteTimeBkk);
         const timeDifference =
-          (currentTimeBKK.getTime() - previousVoteTimeBkk.getTime()) / 1000;
+          (currentTimeBKKTimestamp - previousVoteTimeBkk.getTime()) / 1000;
         console.log("timeDifference -> " + timeDifference);
 
         if (pid === votesResult[0].pid || pid === votesResult[1].pid) {

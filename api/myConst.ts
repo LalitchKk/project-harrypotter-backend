@@ -21,6 +21,27 @@ export const giveCurrentDateTime = () => {
   return `${year}-${month}-${day}`;
 };
 
+export const giveCurrentTime = () => {
+  // Create a new Date object and get its values in Bangkok time
+  const today = new Date();
+  const offset = 7; // Bangkok is UTC+7
+  const utc = today.getTime() + (today.getTimezoneOffset() * 60000);
+  const bangkokTime = new Date(utc + (3600000 * offset));
+
+  // Extract year, month, and day from the Bangkok time
+  const year = bangkokTime.getFullYear();
+  const month = String(bangkokTime.getMonth() + 1).padStart(2, '0'); // Month is zero-based, so we add 1 and pad with zero if necessary
+  const day = String(bangkokTime.getDate()).padStart(2, '0'); // Pad day with zero if necessary
+
+  // Extract hours, minutes, and seconds from the Bangkok time
+  const hours = String(bangkokTime.getHours()).padStart(2, '0');
+  const minutes = String(bangkokTime.getMinutes()).padStart(2, '0');
+  const seconds = String(bangkokTime.getSeconds()).padStart(2, '0');
+
+  // Return the formatted date and time string
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+};
+
 
 
 export const imageURL =
