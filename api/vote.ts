@@ -196,7 +196,7 @@ async function insertPointAsync(
   const date = giveCurrentDateTime();
   return new Promise<number>((resolve, reject) => {
     conn.query(
-      "INSERT INTO Votes(pid, vote, points, create_at) VALUES (?, ?, ?, ?)",
+      "INSERT INTO Votes(pid, vote, points, create_at,time) VALUES (?, ?, ?, ?,CURTIME())",
       [pid, vote, point, date],
       (err, result) => {
         if (err) {

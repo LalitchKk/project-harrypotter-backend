@@ -277,7 +277,7 @@ function getRandomUniquePictures(callback: any) {
 
   const getTwoVote = (callback: any) => {
     conn.query(
-      "SELECT `pid` FROM `Votes` ORDER BY `vid` DESC LIMIT 2",
+      "SELECT `pid`,`time` FROM `Votes` ORDER BY `vid` DESC LIMIT 2",
       (err, result) => {
         if (err) {
           return callback(err);
@@ -286,6 +286,7 @@ function getRandomUniquePictures(callback: any) {
       }
     );
   };
+
 
   const checkDuplicates = (randomPictures:any[], twoVotes:any[]) => {
     if (!randomPictures || !twoVotes) {
