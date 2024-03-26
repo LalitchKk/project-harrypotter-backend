@@ -275,7 +275,7 @@ async function insertPointAsync(
         console.log("previousVoteTime:", previousVoteTime);
 
         const currentTimeBKK = new Date(currentTime.toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
-
+        console.log("currentTimeBKK:", currentTimeBKK);
         const timeDifference =
           (currentTimeBKK.getTime() - previousVoteTime.getTime()) / 1000;
         console.log("timeDifference -> " + timeDifference);
