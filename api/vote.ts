@@ -275,9 +275,10 @@ async function insertPointAsync(
         console.log("previousVoteTime:", previousVoteTime);
 
         const currentTimeBKK = new Date(currentTime.toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
-        console.log("currentTimeBKK:", currentTimeBKK);
+        const previousVoteTimeBkk = new Date(previousVoteTime.toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
+        console.log("previousVoteTime:", previousVoteTimeBkk);
         const timeDifference =
-          (currentTimeBKK.getTime() - previousVoteTime.getTime()) / 1000;
+          (currentTimeBKK.getTime() - previousVoteTimeBkk.getTime()) / 1000;
         console.log("timeDifference -> " + timeDifference);
 
         if (pid === votesResult[0].pid || pid === votesResult[1].pid) {
