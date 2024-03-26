@@ -103,12 +103,24 @@ router.post("/", (req, res) => {
             status: 1,
           });
         }
+        if (s3 === 2) {
+          return res.json({
+            message: "Please waiting ...",
+            status: 1,
+          });
+        }
 
         //insert vote pb
         const s4 = await insertPointAsync(pic2.pid, pic2.vote, point2);
         if (s4 === 1) {
           return res.json({
             message: "Error inserting point for pic2",
+            status: 1,
+          });
+        }
+        if (s4 === 2) {
+          return res.json({
+            message: "Please waiting ...",
             status: 1,
           });
         }
@@ -262,15 +274,17 @@ async function insertPointAsync(
         console.log("recentVoteTime:", recentVoteTime);
         console.log("previousVoteTime:", previousVoteTime);
 
+        const currentTimeBKK = new Date(currentTime.toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
+
         const timeDifference =
-          (currentTime.getTime() - previousVoteTime.getTime()) / 1000;
+          (currentTimeBKK.getTime() - previousVoteTime.getTime()) / 1000;
         console.log("timeDifference -> " + timeDifference);
 
         if (pid === votesResult[0].pid || pid === votesResult[1].pid) {
           // ตรวจสอบว่าโหวตล่าสุดเกินเวลาหรือไม่
           if (timeDifference < second) {
             console.log("Please wait before voting again");
-            resolve(1);
+            resolve(2);
             return; // ออกจากฟังก์ชันหลังจาก resolve เพื่อหยุดการดำเนินการ
           }
         }
