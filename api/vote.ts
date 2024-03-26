@@ -96,8 +96,8 @@ router.post("/", (req, res) => {
         console.log("Rb " + Rb);
 
         //insert vote pa
-        const s3 = await insertPointAsync(pic1.pid, pic1.vote, point1);
-        if (s3 === 1 || s3 === 2) {
+        const s3: { timeDifference: number, status: number } = await insertPointAsync(pic1.pid, pic1.vote, point1);
+        if (s3.status === 1 || s3.status === 2) {
           return res.json({
             message: "Error inserting point for pic1",
             status: 1,
@@ -111,8 +111,8 @@ router.post("/", (req, res) => {
         // }
 
         //insert vote pb
-        const s4 = await insertPointAsync(pic2.pid, pic2.vote, point2);
-        if (s4 === 1 || s4 === 2) {
+        const s4: { timeDifference: number, status: number } = await insertPointAsync(pic2.pid, pic2.vote, point2);
+        if (s4.status === 1 || s4.status === 2) {
           return res.json({
             message: "Error inserting point for pic2",
             status: 1,
@@ -146,6 +146,14 @@ router.post("/", (req, res) => {
         return res.json({
           message: "Points inserted successfully",
           status: 0,
+          difT:[
+            {
+              t3:s3.timeDifference
+            },
+            {
+              t4:s4.timeDifference
+            }
+          ],
           algorithm: [
             {
               oldScore: pa,
@@ -208,22 +216,22 @@ async function insertPointAsync(
   pid: number,
   vote: string,
   point: number
-): Promise<number> {
-  return new Promise<number>((resolve, reject) => {
+): Promise<{ timeDifference: number; status: number }> {
+  return new Promise<{ timeDifference: number; status: number }>((resolve, reject) => {
     // ดึงข้อมูลโหวตล่าสุดสองรายการ
     const recentVotesQuery =
       "SELECT `pid`, `time` FROM `Votes` ORDER BY `vid` DESC LIMIT 2";
     conn.query(recentVotesQuery, async (err, votesResult) => {
       if (err) {
         console.error("Error querying recent votes:", err);
-        resolve(1);
+        resolve({ timeDifference: 0, status: 1 }); 
         return; // ออกจากฟังก์ชันหลังจาก resolve เพื่อหยุดการดำเนินการ
       }
 
       // ตรวจสอบว่ามีโหวตล่าสุดหรือไม่
       if (votesResult.length < 2) {
         console.error("Not enough recent votes found");
-        resolve(1);
+        resolve({ timeDifference: 0, status: 1 }); 
         return; // ออกจากฟังก์ชันหลังจาก resolve เพื่อหยุดการดำเนินการ
       }
 
@@ -232,14 +240,14 @@ async function insertPointAsync(
       conn.query(settingsQuery, async (err, settingsResult) => {
         if (err) {
           console.error("Error querying settings:", err);
-          resolve(1);
+          resolve({ timeDifference: 0, status: 1 }); 
           return; // ออกจากฟังก์ชันหลังจาก resolve เพื่อหยุดการดำเนินการ
         }
 
         // ตรวจสอบว่ามีการตั้งค่าเวลาหรือไม่
         if (settingsResult.length === 0) {
           console.error("No settings found");
-          resolve(1);
+          resolve({ timeDifference: 0, status: 1 }); 
           return; // ออกจากฟังก์ชันหลังจาก resolve เพื่อหยุดการดำเนินการ
         }
         
@@ -285,7 +293,7 @@ async function insertPointAsync(
           // ตรวจสอบว่าโหวตล่าสุดเกินเวลาหรือไม่
           if (timeDifference < second) {
             console.log("Please wait before voting again");
-            resolve(2);
+            resolve({ timeDifference: timeDifference, status: 1 }); 
             return; // ออกจากฟังก์ชันหลังจาก resolve เพื่อหยุดการดำเนินการ
           }
         }
@@ -298,9 +306,9 @@ async function insertPointAsync(
           (err, result) => {
             if (err) {
               console.error("Error inserting point:", err);
-              resolve(1);
+              resolve({ timeDifference: timeDifference, status: 1 }); 
             } else {
-              resolve(0);
+              resolve({ timeDifference: timeDifference, status: 0 }); 
             }
           }
         );
