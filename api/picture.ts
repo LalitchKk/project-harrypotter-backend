@@ -3,7 +3,7 @@ import multer from "multer";
 import mysql from "mysql";
 import { conn } from "../dbconnect";
 import { giveCurrentDateTime, uploadImage } from "./myConst";
-const upload = multer(); 
+const upload = multer();
 export const router = express.Router();
 
 router.get("/", (req, res) => {
@@ -13,13 +13,13 @@ router.get("/", (req, res) => {
 
   // Query สำหรับเก็บข้อมูลเมื่อวาน
   const yesterdaySql =
-    "SELECT p.pid, p.pic, p.total_votes, p.charac_name, DATE_FORMAT(p.create_at, '%Y-%m-%d') AS create_date, p.mid, "+
-    "IFNULL(vp.yesterday_total_points, 0) AS today_total_points, "+
-    "(p.total_votes - IFNULL(vp.yesterday_total_points, 0)) AS yesterday_total_votes "+
-    "FROM Picture p "+
-    "LEFT JOIN ( SELECT pid, SUM(points) AS yesterday_total_points "+
-    "FROM Votes WHERE DATE(create_at) = CURDATE() "+
-    "GROUP BY pid ) vp "+
+    "SELECT p.pid, p.pic, p.total_votes, p.charac_name, DATE_FORMAT(p.create_at, '%Y-%m-%d') AS create_date, p.mid, " +
+    "IFNULL(vp.yesterday_total_points, 0) AS today_total_points, " +
+    "(p.total_votes - IFNULL(vp.yesterday_total_points, 0)) AS yesterday_total_votes " +
+    "FROM Picture p " +
+    "LEFT JOIN ( SELECT pid, SUM(points) AS yesterday_total_points " +
+    "FROM Votes WHERE DATE(create_at) = CURDATE() " +
+    "GROUP BY pid ) vp " +
     "ON p.pid = vp.pid ORDER BY yesterday_total_votes DESC";
   conn.query(yesterdaySql, (err, yesterdayResult) => {
     if (err) {
@@ -29,7 +29,7 @@ router.get("/", (req, res) => {
     yesterdayList.push(...yesterdayResult);
 
     // เก็บ rank ของรูปภาพจากเมื่อวาน
-    yesterdayRank.push(...yesterdayList.map(item => item.pid));
+    yesterdayRank.push(...yesterdayList.map((item) => item.pid));
 
     // Query สำหรับเก็บข้อมูลวันนี้
     const todaySql =
@@ -47,7 +47,9 @@ router.get("/", (req, res) => {
       let isSameRanking: boolean = true;
 
       for (let i = 0; i < todayList.length; i++) {
-        const yesterdayIndex = yesterdayList.findIndex(item => item.pid === todayList[i].pid);
+        const yesterdayIndex = yesterdayList.findIndex(
+          (item) => item.pid === todayList[i].pid
+        );
 
         if (yesterdayIndex === -1 || yesterdayIndex !== i) {
           // ถ้าไม่เท่ากับ -1 หรืออันดับไม่ตรงกันกับ index ใน todayList
@@ -59,7 +61,9 @@ router.get("/", (req, res) => {
       // หาว่าอันดับเพิ่มหรือลด และเก็บค่าไว้ใน difference
       if (!isSameRanking) {
         for (let i = 0; i < todayList.length; i++) {
-          const yesterdayIndex = yesterdayList.findIndex(item => item.pid === todayList[i].pid);
+          const yesterdayIndex = yesterdayList.findIndex(
+            (item) => item.pid === todayList[i].pid
+          );
 
           if (yesterdayIndex !== -1) {
             rankChanged.push(yesterdayIndex - i);
@@ -74,11 +78,14 @@ router.get("/", (req, res) => {
       }
 
       for (let i = 0; i < todayList.length; i++) {
-        // เพิ่ม property "rankChanged" 
+        // เพิ่ม property "rankChanged"
         todayList[i].rankChanged = rankChanged[i] ? rankChanged[i] : 0; // ถ้าไม่มีการเปลี่ยนแปลงให้เป็น 0
 
         // เพิ่ม property "yesterdayRank"
-        todayList[i].yesterdayRank = yesterdayRank.indexOf(todayList[i].pid) !== -1 ? yesterdayRank.indexOf(todayList[i].pid) + 1 : null;
+        todayList[i].yesterdayRank =
+          yesterdayRank.indexOf(todayList[i].pid) !== -1
+            ? yesterdayRank.indexOf(todayList[i].pid) + 1
+            : null;
       }
 
       // ส่งผลลัพธ์กลับไปให้ผู้ใช้
@@ -92,35 +99,35 @@ router.get("/", (req, res) => {
   });
 });
 
-
 router.post("/", upload.single("image"), async (req, res) => {
   const dateTime = giveCurrentDateTime();
 
   try {
-      var image = await uploadImage(req.file, dateTime);
+    var image = await uploadImage(req.file, dateTime);
   } catch (error) {
-      return res.json({ message: error, status: 1 });
+    return res.json({ message: error, status: 1 });
   }
 
   const picture = req.body;
   let sql =
-      "INSERT INTO `Picture`(`pic`, `total_votes`, `charac_name`, `create_at`, `mid`)VALUES (?, ?, ?,?, ?)";
+    "INSERT INTO `Picture`(`pic`, `total_votes`, `charac_name`, `create_at`, `mid`)VALUES (?, ?, ?,?, ?)";
   sql = mysql.format(sql, [
-      image,
-      "0",
-      picture.charac_name,
-      dateTime,
-      picture.mid // Provide the value for the mid column
+    image,
+    "0",
+    picture.charac_name,
+    dateTime,
+    picture.mid, // Provide the value for the mid column
   ]);
   conn.query(sql, (err, result) => {
-      if (err) throw err;
-      res
-          
-          .json({ affected_row: result.affectedRows, last_idx: result.insertId ,status:1});
+    if (err) throw err;
+    res.json({
+      affected_row: result.affectedRows,
+      last_idx: result.insertId,
+      status: 1,
+    });
   });
 });
 
-  
 // router.get("/member/:mid", (req, res) => {
 //   const memberId = req.params.mid;
 //   conn.query(
@@ -132,81 +139,81 @@ router.post("/", upload.single("image"), async (req, res) => {
 //         return res.json({ message: "Internal server error",status:1 });
 //       }
 //       res.json({status:0,picture:result});
-      
+
 //     }
 //   );
 // });
 
 router.get("/pid/:pid", (req, res) => {
-    const pictureId = req.params.pid; 
-    conn.query(
-        "SELECT `pid`, `pic`, `total_votes`, `charac_name`, DATE_FORMAT(`create_at`, '%Y-%m-%d') AS create_date, `mid` FROM `Picture` WHERE pid = ?",
-        [pictureId], 
-        (err, result, fields) => {
-            if (err) {
-                console.error("Error fetching picture:", err);
-                return res.json({ message: "Internal server error",status:1 });
-            }
+  const pictureId = req.params.pid;
+  conn.query(
+    "SELECT `pid`, `pic`, `total_votes`, `charac_name`, DATE_FORMAT(`create_at`, '%Y-%m-%d') AS create_date, `mid` FROM `Picture` WHERE pid = ?",
+    [pictureId],
+    (err, result, fields) => {
+      if (err) {
+        console.error("Error fetching picture:", err);
+        return res.json({ message: "Internal server error", status: 1 });
+      }
 
-            // Check if the result array is empty (no picture found)
-            if (result.length === 0) {
-                return res.json({ message: "Picture not found", status: 1 });
-            }
+      // Check if the result array is empty (no picture found)
+      if (result.length === 0) {
+        return res.json({ message: "Picture not found", status: 1 });
+      }
 
-            // Picture found, return it
-            res.json({status:0,picture:result});
-        }
-    );
+      // Picture found, return it
+      res.json({ status: 0, picture: result });
+    }
+  );
 });
-
 
 router.put("/:id", upload.single("image"), async (req, res) => {
   try {
-      // Check if image not have
-      if (!req.file || !req.file.originalname) {
-          return res.json({ message: "Image is required", status: 1 });
+    // Check if image not have
+    if (!req.file || !req.file.originalname) {
+      return res.json({ message: "Image is required", status: 1 });
+    }
+
+    // Upload image and get download URL
+    const dateTime = giveCurrentDateTime();
+    let image = "";
+    try {
+      image = await uploadImage(req.file, dateTime);
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      return res.json({ message: "Error uploading image", status: 1 });
+    }
+
+    const picture = req.body;
+    const id = req.params.id;
+
+    // Update picture  in  database
+    let sql = "UPDATE `Picture` SET `pic`=?,`charac_name`=? WHERE `pid`=?";
+    sql = mysql.format(sql, [image, picture.charac_name, id]);
+
+    conn.query(sql, (err, result) => {
+      if (err) {
+        console.error("Error updating picture:", err);
+        return res.json({ message: "Error updating picture", status: 1 });
       }
-
-      // Upload image and get download URL
-      const dateTime = giveCurrentDateTime();
-      let image = "";
-      try {
-          image = await uploadImage(req.file, dateTime);
-      } catch (error) {
-          console.error("Error uploading image:", error);
-          return res.json({ message: "Error uploading image", status: 1 });
-      }
-
-      const picture = req.body;
-      const id = req.params.id;
-
-      // Update picture  in  database
-      let sql =
-          "UPDATE `Picture` SET `pic`=?,`charac_name`=? WHERE `pid`=?";
-      sql = mysql.format(sql, [image, picture.charac_name, id]);
-
-      conn.query(sql, (err, result) => {
-          if (err) {
-              console.error("Error updating picture:", err);
-              return res.json({ message: "Error updating picture", status: 1 });
-          }
-          res.json({ affected_row: result.affectedRows, status: 0 });
-      });
+      res.json({ affected_row: result.affectedRows, status: 0 });
+    });
   } catch (error) {
-      console.error("Error:", error);
-      return res.json({ message: "Server error", status: 1 });
+    console.error("Error:", error);
+    return res.json({ message: "Server error", status: 1 });
   }
 });
 
-
 router.delete("/:id", (req, res) => {
   let id = +req.params.id;
-  
+
   // Check if the picture with the specified ID exists
   conn.query("SELECT * FROM Picture WHERE pid = ?", [id], (err, result) => {
     if (err) {
       console.error("Error checking picture existence:", err);
-      return res.json({ message: "Error checking picture existence", status: 1 });
+      return res.json({
+        message: "Error checking picture existence",
+        status: 1,
+      });
     }
 
     // If the picture exists, proceed with deletion; otherwise, return an error
@@ -215,9 +222,15 @@ router.delete("/:id", (req, res) => {
       conn.query("DELETE FROM Picture WHERE pid = ?", [id], (err, result) => {
         if (err) {
           console.error("Error deleting picture:", err);
-          return res.status(500).json({ message: "Error deleting picture", status: 1 });
+          return res
+            .status(500)
+            .json({ message: "Error deleting picture", status: 1 });
         }
-        res.json({message:"Delete Success", affected_row: result.affectedRows,starus:0 });
+        res.json({
+          message: "Delete Success",
+          affected_row: result.affectedRows,
+          starus: 0,
+        });
       });
     } else {
       // Picture not found, return an error response
@@ -239,6 +252,81 @@ router.get("/random", (req, res) => {
   );
 });
 
+
+// router.get("/random", (req, res) => {
+//   getRandomUniquePictures((err, randomPictures) => {
+//     if (err) {
+//       console.error("Error fetching random pictures:", err);
+//       return res.json({ status: 1, message: "Internal server error" });
+//     }
+//     res.json({ status: 0, picture: randomPictures });
+//   });
+// });
+
+// function getRandomUniquePictures(callback: (err: Error | null, randomPictures?: any[]) => void) {
+//   const maxAttempts = 3; // Maximum attempts to generate unique random pictures
+//   let attempts = 0;
+
+//   const getRanDom = (callback: (err: Error | null, randomPictures?: any[]) => void) => {
+//     conn.query(
+//       "SELECT `pid`, `pic`, `total_votes`, `charac_name`, DATE_FORMAT(`create_at`, '%Y-%m-%d') AS create_date, `mid` FROM `Picture` ORDER BY RAND() LIMIT 2",
+//       (err, result) => {
+//         if (err) {
+//           return callback(err);
+//         }
+//         callback(null, result);
+//       }
+//     );
+//   };
+
+//   const getTwoVote = (callback: (err: Error | null, twoVotes?: any[]) => void) => {
+//     conn.query(
+//       "SELECT `pid` FROM `Votes` ORDER BY `vid` DESC LIMIT 2",
+//       (err, result) => {
+//         if (err) {
+//           return callback(err);
+//         }
+//         callback(null, result);
+//       }
+//     );
+//   };
+
+//   const checkDuplicates = (randomPictures: any[], twoVotes: any[]) => {
+//     if (!randomPictures || !twoVotes) {
+//       return false;
+//     }
+//     const duplicatePids = randomPictures.map((pic) => pic.pid).filter((pid) => twoVotes.some((vote) => vote.pid === pid));
+//     return duplicatePids.length > 0;
+//   };
+  
+//   const attemptRandomPictures = () => {
+//     if (attempts >= maxAttempts) {
+//       return callback(new Error("Max attempts reached"));
+//     }
+  
+//     getRanDom((err, randomPictures) => {
+//       if (err) {
+//         return callback(err);
+//       }
+  
+//       getTwoVote((err, twoVotes) => {
+//         if (err) {
+//           return callback(err);
+//         }
+  
+//         if (checkDuplicates(randomPictures || [], twoVotes || [])) {
+//           attempts++;
+//           attemptRandomPictures();
+//         } else {
+//           callback(null, randomPictures);
+//         }
+//       });
+//     });
+//   };
+
+//   attemptRandomPictures();
+// }
+
 router.get("/member/:id", (req, res) => {
   let id = +req.params.id;
   const yesterdayList: any[] = []; // เก็บผลลัพธ์ query ที่ดึงข้อมูลเมื่อวานมาเก็บไว้
@@ -247,13 +335,13 @@ router.get("/member/:id", (req, res) => {
 
   // Query สำหรับเก็บข้อมูลเมื่อวาน
   const yesterdaySql =
-    "SELECT p.pid, p.pic, p.total_votes, p.charac_name, DATE_FORMAT(p.create_at, '%Y-%m-%d') AS create_date, p.mid, "+
-    "IFNULL(vp.yesterday_total_points, 0) AS today_total_points, "+
-    "(p.total_votes - IFNULL(vp.yesterday_total_points, 0)) AS yesterday_total_votes "+
-    "FROM Picture p "+
-    "LEFT JOIN ( SELECT pid, SUM(points) AS yesterday_total_points "+
-    "FROM Votes WHERE DATE(create_at) = CURDATE() "+
-    "GROUP BY pid ) vp "+
+    "SELECT p.pid, p.pic, p.total_votes, p.charac_name, DATE_FORMAT(p.create_at, '%Y-%m-%d') AS create_date, p.mid, " +
+    "IFNULL(vp.yesterday_total_points, 0) AS today_total_points, " +
+    "(p.total_votes - IFNULL(vp.yesterday_total_points, 0)) AS yesterday_total_votes " +
+    "FROM Picture p " +
+    "LEFT JOIN ( SELECT pid, SUM(points) AS yesterday_total_points " +
+    "FROM Votes WHERE DATE(create_at) = CURDATE() " +
+    "GROUP BY pid ) vp " +
     "ON p.pid = vp.pid ORDER BY yesterday_total_votes DESC";
   conn.query(yesterdaySql, (err, yesterdayResult) => {
     if (err) {
@@ -263,7 +351,7 @@ router.get("/member/:id", (req, res) => {
     yesterdayList.push(...yesterdayResult);
 
     // เก็บ rank ของรูปภาพจากเมื่อวาน
-    yesterdayRank.push(...yesterdayList.map(item => item.pid));
+    yesterdayRank.push(...yesterdayList.map((item) => item.pid));
 
     // Query สำหรับเก็บข้อมูลวันนี้
     const todaySql =
@@ -281,7 +369,9 @@ router.get("/member/:id", (req, res) => {
       let isSameRanking: boolean = true;
 
       for (let i = 0; i < todayList.length; i++) {
-        const yesterdayIndex = yesterdayList.findIndex(item => item.pid === todayList[i].pid);
+        const yesterdayIndex = yesterdayList.findIndex(
+          (item) => item.pid === todayList[i].pid
+        );
 
         if (yesterdayIndex === -1 || yesterdayIndex !== i) {
           // ถ้าไม่เท่ากับ -1 หรืออันดับไม่ตรงกันกับ index ใน todayList
@@ -293,7 +383,9 @@ router.get("/member/:id", (req, res) => {
       // หาว่าอันดับเพิ่มหรือลด และเก็บค่าไว้ใน rankChanged
       if (!isSameRanking) {
         for (let i = 0; i < todayList.length; i++) {
-          const yesterdayIndex = yesterdayList.findIndex(item => item.pid === todayList[i].pid);
+          const yesterdayIndex = yesterdayList.findIndex(
+            (item) => item.pid === todayList[i].pid
+          );
 
           if (yesterdayIndex !== -1) {
             rankChanged.push(yesterdayIndex - i);
@@ -308,23 +400,35 @@ router.get("/member/:id", (req, res) => {
       }
 
       for (let i = 0; i < todayList.length; i++) {
-        // เพิ่ม property "rankChanged" 
+        // เพิ่ม property "rankChanged"
         todayList[i].rankChanged = rankChanged[i] ? rankChanged[i] : 0; // ถ้าไม่มีการเปลี่ยนแปลงให้เป็น 0
 
         // เพิ่ม property "yesterdayRank"
-        todayList[i].yesterdayRank = yesterdayRank.indexOf(todayList[i].pid) !== -1 ? yesterdayRank.indexOf(todayList[i].pid) + 1 : null;
+        todayList[i].yesterdayRank =
+          yesterdayRank.indexOf(todayList[i].pid) !== -1
+            ? yesterdayRank.indexOf(todayList[i].pid) + 1
+            : null;
 
         // คำนวณ todayRank โดยใช้ yesterdayRank และ rankChanged
-        todayList[i].todayRank = todayList[i].yesterdayRank - todayList[i].rankChanged;
+        todayList[i].todayRank =
+          todayList[i].yesterdayRank - todayList[i].rankChanged;
       }
 
       // กรองรูปภาพใน yesterdayList เฉพาะที่มี mid เท่ากับ id
-      const filteredYesterdayList = yesterdayList.filter(item => item.mid === id);
+      const filteredYesterdayList = yesterdayList.filter(
+        (item) => item.mid === id
+      );
 
       // กรองรูปภาพใน todayList เฉพาะที่มี mid เท่ากับ id
-      const filteredTodayList = todayList.filter(item => item.mid === id);
-      if (filteredYesterdayList.length === 0 || filteredTodayList.length === 0) {
-        return res.json({ message: "No pictures found with the provided id", status: 1 });
+      const filteredTodayList = todayList.filter((item) => item.mid === id);
+      if (
+        filteredYesterdayList.length === 0 ||
+        filteredTodayList.length === 0
+      ) {
+        return res.json({
+          message: "No pictures found with the provided id",
+          status: 1,
+        });
       }
 
       // ส่งผลลัพธ์กลับไปให้ผู้ใช้
@@ -335,11 +439,3 @@ router.get("/member/:id", (req, res) => {
     });
   });
 });
-
-
-
-
-
-
-
-

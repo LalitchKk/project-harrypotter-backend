@@ -135,21 +135,21 @@ router.post("/", (req, res) => {
               oldScore: pa,
               winloss: va,
               Erating: Ea,
-              k:ka,
+              k: ka,
               Apoint: point1,
               newScore: Ra,
-              algorithmEA:"EA = 1/(1+10^("+pb+"-"+pa+")/400)",
-              algorithmRA:"NewScore = "+pa+"+"+ka+"(1-"+Ea+")"
+              algorithmEA: "EA = 1/(1+10^(" + pb + "-" + pa + ")/400)",
+              algorithmRA: "NewScore = " + pa + "+" + ka + "(1-" + Ea + ")",
             },
             {
               oldScore: pb,
               winloss: vb,
               Erating: Eb,
-              k:kb,
+              k: kb,
               Apoint: point2,
               newScore: Rb,
-              algorithmEA:"EA = 1/(1+10^("+pa+"-"+pb+")/400)",
-              algorithmRA:"NewScore = "+pb+"+"+kb+"(1-"+Eb+")"
+              algorithmEA: "EA = 1/(1+10^(" + pa + "-" + pb + ")/400)",
+              algorithmRA: "NewScore = " + pb + "+" + kb + "(1-" + Eb + ")",
             },
           ],
         });
@@ -159,8 +159,8 @@ router.post("/", (req, res) => {
 });
 
 export function K(kMost: number, score: number): number {
-  const percen1 = (90 / 100) * kMost;//90%
-  const percen2 = (60 / 100) * kMost;//60%
+  const percen1 = (90 / 100) * kMost; //90%
+  const percen2 = (60 / 100) * kMost; //60%
 
   if (score > percen1) {
     return 32;
@@ -170,7 +170,6 @@ export function K(kMost: number, score: number): number {
     return 16;
   }
 }
-
 
 async function updateScoreAsync(pid: any, point: number): Promise<number> {
   return new Promise<number>((resolve, reject) => {
@@ -215,11 +214,11 @@ router.get("/:pid", (req, res) => {
   const pid = req.params.pid;
 
   const sql =
-    "SELECT pid, vote, SUM(points) AS totalPoint, DATE_FORMAT(`create_at`, '%Y-%m-%d') AS create_at " +
-    "FROM Votes " +
-    "WHERE `create_at` >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) AND pid = ? " +
-    "GROUP BY vote, create_at " +
-    "ORDER BY `create_at`, vote";
+    "SELECT pid,SUM(vote) AS total_votes,DATE_FORMAT(v.create_at, '%Y-%m-%d') AS create_at,SUM(CASE WHEN v.vote = 1 THEN v.points ELSE 0 END) AS win_points,SUM(CASE WHEN v.vote = 0 THEN v.points ELSE 0 END) AS lose_points,SUM(points) AS total_points " +
+    "FROM Votes v " +
+    "WHERE v.create_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) AND v.pid = ? " +
+    "GROUP BY pid, create_at " +
+    "ORDER BY create_at DESC";
 
   // Execute the SQL query
   conn.query(sql, [pid], (err, result) => {
@@ -236,12 +235,14 @@ router.get("/:pid", (req, res) => {
     let dateList: number[] = []; // List of dates
     let winList: number[] = []; // List of winning points
     let loseList: number[] = []; // List of losing points
+    let pointList: number[] = [];
     let monthList = ""; // Name of the month
     let tmp: any = null;
 
     result.forEach((entry: VoteEntry) => {
-      let res = entry.vote; // The vote result (0 or 1)
-      let totalPoint = entry.totalPoint; // Total points
+      let win_points = entry.win_points; // win points
+      let lose_points = entry.lose_points; // lose points
+      let total_points = entry.total_points; // total points
       let date = new Date(entry.create_at); // Convert create_at string to Date object
       let formattedDate = date.getDate(); // Get  day of the month
       let month = date.getMonth() + 1; // Get the month (add 1 because January is 0)
@@ -265,41 +266,27 @@ router.get("/:pid", (req, res) => {
 
       // Find the index of the current date in dateList
       const dateIndex = dateList.indexOf(formattedDate);
-      console.log("dateIndex" + dateIndex);
 
-      // If the vote result is 0, add points to loseList at the corresponding index, else add to winList
-      if (res == 0) {
-        console.log("res ==  " + res);
+      // If the win_points, lose_points, and total_points are undefined, set them to 0
+      win_points = win_points ? win_points : 0;
+      lose_points = lose_points ? lose_points : 0;
+      total_points = total_points ? total_points : 0;
 
-        if (loseList[dateIndex] === undefined) {
-          loseList[dateIndex] = Math.abs(totalPoint);
-          winList[dateIndex] = 0;
-          console.log("loseList" + loseList);
-          console.log("winList" + winList);
-        } else {
-          loseList[dateIndex] += Math.abs(totalPoint);
-          console.log("loseList" + loseList);
-        }
-      } else if (res == 1) {
-        if (winList[dateIndex] === undefined) {
-          winList[dateIndex] = totalPoint;
-          loseList[dateIndex] = 0;
-          console.log("winList" + winList);
-          console.log("loseList" + loseList);
-        } else {
-          winList[dateIndex] += totalPoint;
-          console.log("winList" + winList);
-        }
-      }
-      console.log("dateList -> " + dateList);
+      // Push win_points, lose_points, and total_points to their respective lists
+      winList.push(win_points);
+      loseList.push(lose_points);
+      pointList.push(total_points);
     });
 
-    //push to list
+    // Ensure that all lists have the same length
     while (winList.length < dateList.length) {
       winList.push(0);
     }
     while (loseList.length < dateList.length) {
       loseList.push(0);
+    }
+    while (pointList.length < dateList.length) {
+      pointList.push(0);
     }
 
     // Send the processed data as a JSON response
@@ -309,6 +296,7 @@ router.get("/:pid", (req, res) => {
       dateList: dateList,
       winList: winList,
       loseList: loseList,
+      pointsList:pointList
     });
   });
 });
@@ -317,12 +305,3 @@ router.get("/:pid", (req, res) => {
 function setnameMonth(date: Date) {
   return new Intl.DateTimeFormat("en-US", { month: "long" }).format(date);
 }
-
-
-
-
-
-
-
-
-

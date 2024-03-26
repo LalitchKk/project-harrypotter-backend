@@ -9,6 +9,8 @@ export interface Votes {
 export interface VoteEntry {
     pid: number;
     vote: number;
-    totalPoint: number;
+    win_points: number;
+    lose_points : number;
+    total_points:number;
     create_at: string; // Assuming create_at is a string
 }
