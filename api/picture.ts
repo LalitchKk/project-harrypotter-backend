@@ -113,7 +113,7 @@ router.post("/", upload.single("image"), async (req, res) => {
     "INSERT INTO `Picture`(`pic`, `total_votes`, `charac_name`, `create_at`, `mid`)VALUES (?, ?, ?,?, ?)";
   sql = mysql.format(sql, [
     image,
-    "0",
+    "50",
     picture.charac_name,
     dateTime,
     picture.mid, // Provide the value for the mid column
@@ -239,93 +239,90 @@ router.delete("/:id", (req, res) => {
   });
 });
 
-router.get("/random", (req, res) => {
-  conn.query(
-    "SELECT `pid`, `pic`, `total_votes`, `charac_name`, DATE_FORMAT(`create_at`, '%Y-%m-%d') AS create_date, `mid` FROM `Picture` ORDER BY RAND() LIMIT 2",
-    (err, result, fields) => {
-      if (err) {
-        console.error("Error fetching data:", err);
-        return res.json({ message: "Internal server error" });
-      }
-      res.json({status:0,picture:result});
-    }
-  );
-});
-
-
 // router.get("/random", (req, res) => {
-//   getRandomUniquePictures((err, randomPictures) => {
-//     if (err) {
-//       console.error("Error fetching random pictures:", err);
-//       return res.json({ status: 1, message: "Internal server error" });
+//   conn.query(
+//     "SELECT `pid`, `pic`, `total_votes`, `charac_name`, DATE_FORMAT(`create_at`, '%Y-%m-%d') AS create_date, `mid` FROM `Picture` ORDER BY RAND() LIMIT 2",
+//     (err, result, fields) => {
+//       if (err) {
+//         console.error("Error fetching data:", err);
+//         return res.json({ message: "Internal server error" });
+//       }
+//       res.json({status:0,picture:result});
 //     }
-//     res.json({ status: 0, picture: randomPictures });
-//   });
+//   );
 // });
 
-// function getRandomUniquePictures(callback: (err: Error | null, randomPictures?: any[]) => void) {
-//   const maxAttempts = 3; // Maximum attempts to generate unique random pictures
-//   let attempts = 0;
+router.get("/random", (req, res) => {
+  getRandomUniquePictures((err:any, randomPictures:any[]) => {
+    if (err) {
+      console.error("Error fetching random pictures:", err);
+      return res.json({ status: 1, message: "Internal server error" });
+    }
+    res.json({ status: 0, picture: randomPictures });
+  });
+});
 
-//   const getRanDom = (callback: (err: Error | null, randomPictures?: any[]) => void) => {
-//     conn.query(
-//       "SELECT `pid`, `pic`, `total_votes`, `charac_name`, DATE_FORMAT(`create_at`, '%Y-%m-%d') AS create_date, `mid` FROM `Picture` ORDER BY RAND() LIMIT 2",
-//       (err, result) => {
-//         if (err) {
-//           return callback(err);
-//         }
-//         callback(null, result);
-//       }
-//     );
-//   };
+function getRandomUniquePictures(callback: any) {
+  const getRanDom = (callback: any) => {
+    conn.query(
+      "SELECT `pid`, `pic`, `total_votes`, `charac_name`, DATE_FORMAT(`create_at`, '%Y-%m-%d') AS create_date, `mid` FROM `Picture` ORDER BY RAND() LIMIT 2",
+      (err, result) => {
+        if (err) {
+          return callback(err);
+        }
+        callback(null, result);
+      }
+    );
+  };
 
-//   const getTwoVote = (callback: (err: Error | null, twoVotes?: any[]) => void) => {
-//     conn.query(
-//       "SELECT `pid` FROM `Votes` ORDER BY `vid` DESC LIMIT 2",
-//       (err, result) => {
-//         if (err) {
-//           return callback(err);
-//         }
-//         callback(null, result);
-//       }
-//     );
-//   };
+  const getTwoVote = (callback: any) => {
+    conn.query(
+      "SELECT `pid` FROM `Votes` ORDER BY `vid` DESC LIMIT 2",
+      (err, result) => {
+        if (err) {
+          return callback(err);
+        }
+        callback(null, result);
+      }
+    );
+  };
 
-//   const checkDuplicates = (randomPictures: any[], twoVotes: any[]) => {
-//     if (!randomPictures || !twoVotes) {
-//       return false;
-//     }
-//     const duplicatePids = randomPictures.map((pic) => pic.pid).filter((pid) => twoVotes.some((vote) => vote.pid === pid));
-//     return duplicatePids.length > 0;
-//   };
-  
-//   const attemptRandomPictures = () => {
-//     if (attempts >= maxAttempts) {
-//       return callback(new Error("Max attempts reached"));
-//     }
-  
-//     getRanDom((err, randomPictures) => {
-//       if (err) {
-//         return callback(err);
-//       }
-  
-//       getTwoVote((err, twoVotes) => {
-//         if (err) {
-//           return callback(err);
-//         }
-  
-//         if (checkDuplicates(randomPictures || [], twoVotes || [])) {
-//           attempts++;
-//           attemptRandomPictures();
-//         } else {
-//           callback(null, randomPictures);
-//         }
-//       });
-//     });
-//   };
+  const checkDuplicates = (randomPictures:any[], twoVotes:any[]) => {
+    if (!randomPictures || !twoVotes) {
+      return false;
+    }
+    const duplicatePids = randomPictures
+      .map((pic) => pic.pid)
+      .filter((pid) => twoVotes.some((vote) => vote.pid === pid));
+    return duplicatePids.length > 0;
+  };
 
-//   attemptRandomPictures();
-// }
+  const attemptRandomPictures = (attempts = 0) => {
+    if (attempts >= 10) {
+      return callback(new Error("Max attempts reached"));
+    }
+
+    getRanDom((err:any, randomPictures:any[]) => {
+      if (err) {
+        return callback(err);
+      }
+
+      getTwoVote((err:any, twoVotes:any[]) => {
+        if (err) {
+          return callback(err);
+        }
+
+        if (checkDuplicates(randomPictures || [], twoVotes || [])) {
+          attemptRandomPictures(attempts + 1); // Increase attempts and try again
+        } else {
+          callback(null, randomPictures);
+        }
+      });
+    });
+  };
+
+  attemptRandomPictures(); // Start attempting to generate unique random pictures
+}
 
 router.get("/member/:id", (req, res) => {
   let id = +req.params.id;

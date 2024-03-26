@@ -213,6 +213,26 @@ async function insertPointAsync(
 router.get("/:pid", (req, res) => {
   const pid = req.params.pid;
 
+  //try na do that day rank (not done yet)
+  //   SELECT
+  //     v.pid,
+  //     DATE_FORMAT(v.create_at, '%Y-%m-%d') AS date,
+  //     SUM(CASE WHEN v.vote = 1 THEN v.points ELSE 0 END) AS win_points,
+  //     SUM(CASE WHEN v.vote = 0 THEN v.points ELSE 0 END) AS lose_points,
+  //     SUM(v.points) AS total_points,
+  //     p.total_votes - SUM(v.points) AS yesterday_votes,
+  //    (p.total_votes - SUM(v.points)) + SUM(v.points) AS that_day_votes
+  // FROM
+  //     Votes v
+  // INNER JOIN
+  //     Picture p ON v.pid = p.pid
+  // WHERE
+  //     v.create_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) AND v.pid = 16
+  // GROUP BY
+  //     v.pid, DATE_FORMAT(v.create_at, '%Y-%m-%d')
+  // ORDER BY
+  //     DATE_FORMAT(v.create_at, '%Y-%m-%d') DESC;
+
   const sql =
     "SELECT pid,SUM(vote) AS total_votes,DATE_FORMAT(v.create_at, '%Y-%m-%d') AS create_at,SUM(CASE WHEN v.vote = 1 THEN v.points ELSE 0 END) AS win_points,SUM(CASE WHEN v.vote = 0 THEN v.points ELSE 0 END) AS lose_points,SUM(points) AS total_points " +
     "FROM Votes v " +
@@ -296,7 +316,7 @@ router.get("/:pid", (req, res) => {
       dateList: dateList,
       winList: winList,
       loseList: loseList,
-      pointsList:pointList
+      pointsList: pointList,
     });
   });
 });
