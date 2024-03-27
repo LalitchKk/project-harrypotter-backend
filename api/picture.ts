@@ -248,7 +248,10 @@ router.post("/random", (req, res) => {
     (err, result, fields) => {
       if (err) {
         console.error("Error fetching data:", err);
-        return res.json({ message: "Internal server error" });
+        return res.json({status:1, message: "Internal server error" });
+      }
+      if (result.length<2) {
+        return res.json({status:1, message: "Only 1 Pic" });
       }
       res.json({status:0,picture:result});
     }
@@ -260,7 +263,7 @@ router.post("/random", (req, res) => {
     (err, result, fields) => {
       if (err) {
         console.error("Error fetching data:", err);
-        return res.json({ message: "Internal server error" });
+        return res.json({status:1, message: "Internal server error" });
       }
       res.json({status:0,picture:result});
     }
