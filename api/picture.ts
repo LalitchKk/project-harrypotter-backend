@@ -251,7 +251,7 @@ router.post("/random", (req, res) => {
         return res.json({status:1, message: "Internal server error" });
       }
       if (result.length<2) {
-        return res.json({status:1, message: "Only 1 Pic" });
+        return res.json({status:1, message: "Picture not enough" });
       }
       res.json({status:0,picture:result});
     }
