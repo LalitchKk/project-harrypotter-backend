@@ -16,11 +16,13 @@ router.get("/", (req, res) => {
     "SELECT p.pid, p.pic, p.total_votes, p.charac_name, DATE_FORMAT(p.create_at, '%Y-%m-%d') AS create_date, p.mid, " +
     "IFNULL(vp.yesterday_total_points, 0) AS today_total_points, " +
     "(p.total_votes - IFNULL(vp.yesterday_total_points, 0)) AS yesterday_total_votes " +
-    "FROM Picture p " +
+    "FROM Picture p " + 
     "LEFT JOIN ( SELECT pid, SUM(points) AS yesterday_total_points " +
-    "FROM Votes WHERE DATE(create_at) = CURDATE() " +
-    "GROUP BY pid ) vp " +
-    "ON p.pid = vp.pid ORDER BY yesterday_total_votes DESC";
+                "FROM Votes "+
+                "WHERE DATE(create_at) = CURDATE() " +
+                "GROUP BY pid ) vp " +
+    "ON p.pid = vp.pid "+
+    "ORDER BY yesterday_total_votes DESC";
   conn.query(yesterdaySql, (err, yesterdayResult) => {
     if (err) {
       console.error("Error fetching yesterday data:", err);
@@ -113,7 +115,7 @@ router.post("/", upload.single("image"), async (req, res) => {
     "INSERT INTO `Picture`(`pic`, `total_votes`, `charac_name`, `create_at`, `mid`)VALUES (?, ?, ?,?, ?)";
   sql = mysql.format(sql, [
     image,
-    "50",
+    "0",
     picture.charac_name,
     dateTime,
     picture.mid, // Provide the value for the mid column
