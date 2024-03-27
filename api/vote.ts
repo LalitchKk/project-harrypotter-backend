@@ -96,8 +96,8 @@ router.post("/", (req, res) => {
         console.log("Rb " + Rb);
 
         //insert vote pa
-        const s3: { timeDifference: number, status: number } = await insertPointAsync(pic1.pid, pic1.vote, point1);
-        if (s3.status === 1 || s3.status === 2) {
+        const s3 = await insertPointAsync(pic1.pid, pic1.vote, point1);
+        if (s3 === 1 ) {
           return res.json({
             message: "Error inserting point for pic1",
             status: 1,
@@ -111,8 +111,8 @@ router.post("/", (req, res) => {
         // }
 
         //insert vote pb
-        const s4: { timeDifference: number, status: number } = await insertPointAsync(pic2.pid, pic2.vote, point2);
-        if (s4.status === 1 || s4.status === 2) {
+        const s4 = await insertPointAsync(pic2.pid, pic2.vote, point2);
+        if (s4 === 1 ) {
           return res.json({
             message: "Error inserting point for pic2",
             status: 1,
@@ -146,14 +146,6 @@ router.post("/", (req, res) => {
         return res.json({
           message: "Points inserted successfully",
           status: 0,
-          difT:[
-            {
-              t3:s3.timeDifference
-            },
-            {
-              t4:s4.timeDifference
-            }
-          ],
           algorithm: [
             {
               oldScore: pa,
@@ -216,119 +208,21 @@ async function insertPointAsync(
   pid: number,
   vote: string,
   point: number
-): Promise<{ timeDifference: number; status: number }> {
-  return new Promise<{ timeDifference: number; status: number }>((resolve, reject) => {
-    // ดึงข้อมูลโหวตล่าสุดสองรายการ
-    const recentVotesQuery =
-      "SELECT `pid`, `time` FROM `Votes` ORDER BY `vid` DESC LIMIT 2";
-    conn.query(recentVotesQuery, async (err, votesResult) => {
-      if (err) {
-        console.error("Error querying recent votes:", err);
-        resolve({ timeDifference: 0, status: 1 }); 
-        return; // ออกจากฟังก์ชันหลังจาก resolve เพื่อหยุดการดำเนินการ
-      }
-
-      // ตรวจสอบว่ามีโหวตล่าสุดหรือไม่
-      if (votesResult.length < 2) {
-        console.error("Not enough recent votes found");
-        resolve({ timeDifference: 0, status: 1 }); 
-        return; // ออกจากฟังก์ชันหลังจาก resolve เพื่อหยุดการดำเนินการ
-      }
-
-      // ดึงข้อมูลการตั้งค่าเวลา
-      const settingsQuery = "SELECT `secid`, `second` FROM `Setting`";
-      conn.query(settingsQuery, async (err, settingsResult) => {
+): Promise<number> {
+  const date = giveCurrentDateTime();
+  return new Promise<number>((resolve, reject) => {
+    conn.query(
+      "INSERT INTO Votes(pid, vote, points, create_at,time) VALUES (?, ?, ?, ?,CURTIME())",
+      [pid, vote, point, date],
+      (err, result) => {
         if (err) {
-          console.error("Error querying settings:", err);
-          resolve({ timeDifference: 0, status: 1 }); 
-          return; // ออกจากฟังก์ชันหลังจาก resolve เพื่อหยุดการดำเนินการ
+          console.error("Error inserting point:", err);
+          resolve(1);
+        } else {
+          resolve(0);
         }
-
-        // ตรวจสอบว่ามีการตั้งค่าเวลาหรือไม่
-        if (settingsResult.length === 0) {
-          console.error("No settings found");
-          resolve({ timeDifference: 0, status: 1 }); 
-          return; // ออกจากฟังก์ชันหลังจาก resolve เพื่อหยุดการดำเนินการ
-        }
-        
-        const { secid, second } = settingsResult[0]; // สมมติว่ามีข้อมูลการตั้งค่าเวลาอยู่ใน index แรก
-
-        // ดำเนินการตรวจสอบเวลา
-        const currentTime = new Date();
-        const recentVoteTime = new Date();
-        const previousVoteTime = new Date();
-
-        // แยกชั่วโมง, นาที, และวินาทีจาก timestamp
-        const recentVoteTimeString = votesResult[0].time;
-        const previousVoteTimeString = votesResult[1].time;
-
-        const [recentHours, recentMinutes, recentSeconds] = recentVoteTimeString
-          .split(":")
-          .map(Number);
-        const [previousHours, previousMinutes, previousSeconds] =
-          previousVoteTimeString.split(":").map(Number);
-
-        // กำหนดค่าให้กับ Object ของ Date ใหม่
-        recentVoteTime.setHours(recentHours, recentMinutes, recentSeconds);
-        previousVoteTime.setHours(
-          previousHours,
-          previousMinutes,
-          previousSeconds
-        );
-        console.log("this time -> " + currentTime);
-        console.log("db time -> " + votesResult[1].time);
-        console.log("votesResult:", votesResult);
-        console.log("votesResult[1].time:", votesResult[1].time);
-        console.log("recentVoteTime:", recentVoteTime);
-        console.log("previousVoteTime:", previousVoteTime);
-
-        const formatter = new Intl.DateTimeFormat('en-US', {
-          timeZone: 'Asia/Bangkok',
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-        });
-        
-        const currentTimeBKK = formatter.format(currentTime);
-        const currentTimeBKKTimestamp = new Date(currentTimeBKK).getTime();
-        console.log("currentTimeBKKTimestamp --->"+currentTimeBKKTimestamp);
-
-        // const currentTimeBKK = giveCurrentTime();
-        // const currentTimeBKK = new Date(currentTime.toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
-        const previousVoteTimeBkk = new Date(previousVoteTime.toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
-        console.log("previousVoteTime:", previousVoteTimeBkk);
-        const timeDifference =
-          (currentTimeBKKTimestamp - previousVoteTimeBkk.getTime()) / 1000;
-        console.log("timeDifference -> " + timeDifference);
-
-        if (pid === votesResult[0].pid || pid === votesResult[1].pid) {
-          // ตรวจสอบว่าโหวตล่าสุดเกินเวลาหรือไม่
-          if (timeDifference < second) {
-            console.log("Please wait before voting again");
-            resolve({ timeDifference: timeDifference, status: 1 }); 
-            return; // ออกจากฟังก์ชันหลังจาก resolve เพื่อหยุดการดำเนินการ
-          }
-        }
-
-        // ดำเนินการเพิ่มโหวต
-        const date = giveCurrentDateTime();
-        conn.query(
-          "INSERT INTO Votes(pid, vote, points, create_at, time) VALUES (?, ?, ?, ?, CURTIME())",
-          [pid, vote, point, date],
-          (err, result) => {
-            if (err) {
-              console.error("Error inserting point:", err);
-              resolve({ timeDifference: timeDifference, status: 1 }); 
-            } else {
-              resolve({ timeDifference: timeDifference, status: 0 }); 
-            }
-          }
-        );
-      });
-    });
+      }
+    );
   });
 }
 

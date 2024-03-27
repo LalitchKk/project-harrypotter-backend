@@ -239,7 +239,22 @@ router.delete("/:id", (req, res) => {
   });
 });
 
-router.get("/random", (req, res) => {
+router.post("/random", (req, res) => {
+  const pictures = req.body.list;
+ if (pictures.length !== 0) {
+  const pidNot = `(${pictures.join(',')})`
+  conn.query(
+    "SELECT `pid`, `pic`, `total_votes`, `charac_name`, DATE_FORMAT(`create_at`, '%Y-%m-%d') AS create_date, `mid` FROM `Picture` WHERE pid not in "+pidNot+" ORDER BY RAND() LIMIT 2",
+    (err, result, fields) => {
+      if (err) {
+        console.error("Error fetching data:", err);
+        return res.json({ message: "Internal server error" });
+      }
+      res.json({status:0,picture:result});
+    }
+  );
+ }
+ else{
   conn.query(
     "SELECT `pid`, `pic`, `total_votes`, `charac_name`, DATE_FORMAT(`create_at`, '%Y-%m-%d') AS create_date, `mid` FROM `Picture` ORDER BY RAND() LIMIT 2",
     (err, result, fields) => {
@@ -250,6 +265,7 @@ router.get("/random", (req, res) => {
       res.json({status:0,picture:result});
     }
   );
+ }
 });
 
 // router.get("/random", (req, res) => {
